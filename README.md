@@ -47,10 +47,25 @@ Escribe un texto, pulsa **🔊 Hablar** y la voz se escucha en tu auricular y a 
 
 Ahí la app no puede crear el micrófono sola: necesita un cable de audio virtual del sistema. La app lo detecta y reproduce en él automáticamente; solo tienes que seleccionar la entrada en Discord.
 
-- **macOS:** instala [BlackHole](https://existential.audio/blackhole/) (`brew install --cask blackhole-2ch`). Discord → entrada → `BlackHole 2ch`.
-- **Windows:** instala [VB-CABLE](https://vb-audio.com/Cable/). Discord → entrada → `CABLE Output`.
+1. **Instala el cable (una vez):**
+   - **macOS:** [BlackHole](https://existential.audio/blackhole/) (`brew install --cask blackhole-2ch`).
+   - **Windows:** [VB-CABLE](https://vb-audio.com/Cable/) (instalador, requiere permisos de administrador).
+2. **Elige la entrada en Discord:** Ajustes → Voz y vídeo → Dispositivo de entrada → `BlackHole 2ch` (macOS) o `CABLE Output` (Windows).
 
-Si no hay cable instalado, la app reproduce por el altavoz y te avisa al abrirse.
+### Escucharte a ti mismo
+
+El cable virtual manda el audio a Discord, pero no a tus altavoces; para oírte necesitas duplicar la salida:
+
+- **macOS:** en *Audio MIDI Setup* crea un **dispositivo de salida múltiple** con tus altavoces + BlackHole y selecciónalo como salida del sistema.
+- **Windows:** en *Sonido → Grabación → CABLE Output → Propiedades → Escuchar* marca **Escuchar este dispositivo** y elige tus altavoces.
+
+### Si algo no suena
+
+- Deja la app abierta; en Windows/macOS solo reproduce mientras se ejecuta.
+- En Windows, si en Discord se oye muy bajo, prueba a `Discord → Ajustes → Voz y vídeo → Desactivar el procesamiento de audio` y ajusta el volumen de entrada.
+- Si no detecta el cable, la app reproduce por el altavoz y lo avisa al abrirse.
+
+> Verificado en Linux; el ruteo a BlackHole/VB-CABLE está probado en la integración automática, pero no en hardware real de Windows/macOS.
 
 ## Qué puedes hacer
 
