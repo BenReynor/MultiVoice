@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=TTS Multitud
+Comment=Hablar por micrófono virtual
+Exec=bash -c '/home/benjametalsp/Escritorio/mic_virtual/iniciar.sh'
+Icon=audio-volume-high
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;

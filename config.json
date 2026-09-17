@@ -1,0 +1,12 @@
+{
+  "theme": "gruvbox",
+  "voice": "🔧 Aragonese (roa/an)",
+  "rate": -15,
+  "pitch": -25,
+  "volume": 50,
+  "robot_metal": 0,
+  "auto_clear": true,
+  "queue_enabled": true,
+  "max_tabs": 5,
+  "engine": "pyttsx3"
+}
