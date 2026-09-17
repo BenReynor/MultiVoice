@@ -274,6 +274,18 @@ class TTSApp:
         self._set_slider("volume", self.cfg.get("volume", 0))
         self.metal_slider.set(self.cfg.get("robot_metal", 70))
         self.set_status("✅ Listo — elige motor y voz")
+        self._announce_virtual_device()
+
+    def _announce_virtual_device(self):
+        """Avisa del estado del mic virtual en Windows/macOS al arrancar."""
+        if sys.platform.startswith("linux"):
+            return
+        found = tts_engine.find_virtual_output()
+        if found:
+            self.set_status(f"🎤 Cable virtual: {found[1]}")
+        else:
+            self.set_status(
+                "Sin cable virtual. Instala BlackHole (mac) o VB-CABLE (win)")
 
     def _reload_voices(self):
         """Recarga la lista de voces según el motor actual."""

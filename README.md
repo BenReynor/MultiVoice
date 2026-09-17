@@ -43,6 +43,15 @@ En Linux la app crea el micrófono virtual `🎤` al abrirse y lo elimina al cer
 
 Escribe un texto, pulsa **🔊 Hablar** y la voz se escucha en tu auricular y a través del mic virtual.
 
+## Micrófono virtual en Windows y macOS
+
+Ahí la app no puede crear el micrófono sola: necesita un cable de audio virtual del sistema. La app lo detecta y reproduce en él automáticamente; solo tienes que seleccionar la entrada en Discord.
+
+- **macOS:** instala [BlackHole](https://existential.audio/blackhole/) (`brew install --cask blackhole-2ch`). Discord → entrada → `BlackHole 2ch`.
+- **Windows:** instala [VB-CABLE](https://vb-audio.com/Cable/). Discord → entrada → `CABLE Output`.
+
+Si no hay cable instalado, la app reproduce por el altavoz y te avisa al abrirse.
+
 ## Qué puedes hacer
 
 - **Tres motores TTS:** voces neuronales de Microsoft Edge (14 voces en español, internet), Google TTS (gTTS, internet) y sonido robot local (espeak-ng, sin internet).
@@ -62,7 +71,7 @@ Escribe un texto, pulsa **🔊 Hablar** y la voz se escucha en tu auricular y a 
 ## Notas
 
 - El mic virtual `🎤` solo existe en Linux y mientras la app está abierta; si quieres elegirlo en Discord, ten la app abierta.
-- En Windows y macOS la voz suena por el altavoz predeterminado (no crea micrófono virtual); para meterla en Discord ahí necesitas un cable virtual de audio del sistema.
+- En Windows y macOS la app usa el cable virtual del sistema (BlackHole o VB-CABLE) si lo tienes instalado; si no, reproduce por el altavoz.
 - Edge TTS y Google TTS necesitan internet. El robot funciona sin conexión y necesita `espeak-ng` y `ffmpeg` instalados.
 
 ## Licencia

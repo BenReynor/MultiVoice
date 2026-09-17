@@ -46,8 +46,22 @@ def check_robot_synth():
     print("robot synth OK")
 
 
+def check_virtual_device():
+    if sys.platform.startswith("linux"):
+        assert tts_engine.find_virtual_output() is None
+        print("virtual device: SKIP (Linux usa pactl)")
+        return
+    try:
+        import sounddevice  # noqa: F401
+    except Exception as exc:
+        raise AssertionError(f"sounddevice no instalado: {exc!r}")
+    found = tts_engine.find_virtual_output()
+    print(f"virtual device: {found[1] if found else 'ninguno (fallback altavoz)'}")
+
+
 def main():
     check_engines()
+    check_virtual_device()
     check_edge_synth()
     check_robot_synth()
     print("SMOKE OK")

@@ -10,6 +10,7 @@ import asyncio
 import os
 import subprocess
 import sys
+import threading
 
 import edge_tts
 from gtts import gTTS
@@ -172,14 +173,90 @@ def get_default_sink():
     return (r.stdout or "").strip() if r.returncode == 0 else ""
 
 
+# Nombres de cables virtuales por sistema (subcadena, sin distinguir mayúsculas)
+VIRTUAL_DEVICE_HINTS = {
+    "win32": ["cable input", "vb-audio", "voicemeeter", "virtual audio"],
+    "darwin": ["blackhole", "loopback", "soundflower", "virtual"],
+}
+
+
+def find_virtual_output():
+    """Busca un dispositivo de salida virtual (VB-CABLE, BlackHole...).
+
+    Devuelve (indice, nombre) o None. Solo Windows/macOS; en Linux el mic
+    virtual se gestiona con pactl/PipeWire.
+    """
+    if sys.platform.startswith("linux"):
+        return None
+    try:
+        import sounddevice as sd
+    except Exception:
+        return None
+    key = "win32" if sys.platform.startswith("win") else "darwin"
+    hints = VIRTUAL_DEVICE_HINTS.get(key, [])
+    try:
+        devices = sd.query_devices()
+    except Exception:
+        return None
+    for idx, dev in enumerate(devices):
+        if dev.get("max_output_channels", 0) <= 0:
+            continue
+        name = str(dev.get("name", ""))
+        if any(h in name.lower() for h in hints):
+            return idx, name
+    return None
+
+
+class _SdPlayer:
+    """Reproductor con sounddevice con la misma interfaz que subprocess.Popen."""
+
+    def __init__(self, wav_path, device):
+        self._stop = threading.Event()
+        self._done = threading.Event()
+        self.device = device
+        self.thread = threading.Thread(target=self._run, args=(wav_path,),
+                                       daemon=True)
+        self.thread.start()
+
+    def _run(self, wav_path):
+        try:
+            import sounddevice as sd
+            import wave
+            with wave.open(wav_path, "rb") as w:
+                rate = w.getframerate()
+                channels = w.getnchannels()
+                width = w.getsampwidth()
+                data = w.readframes(w.getnframes())
+            dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width, "int16")
+            with sd.RawOutputStream(samplerate=rate, channels=channels,
+                                    dtype=dtype, device=self.device) as stream:
+                chunk = rate * channels * width  # ~1 segundo
+                for i in range(0, len(data), chunk):
+                    if self._stop.is_set():
+                        break
+                    stream.write(data[i:i + chunk])
+        except Exception:
+            pass
+        finally:
+            self._done.set()
+
+    def poll(self):
+        return 0 if self._done.is_set() else None
+
+    def terminate(self):
+        self._stop.set()
+        self._done.wait(2)
+
+
 def play_wav(wav_path):
     """Reproduce el audio.
 
-    Linux: al micrófono virtual y al altavoz.
-    Windows/macOS: por el altavoz predeterminado (necesita ffmpeg/ffplay).
+    Linux: al micrófono virtual y al altavoz, con pw-play.
+    Windows/macOS: al cable virtual (si está instalado) y al altavoz, con
+    sounddevice; si no hay cable virtual, solo al altavoz con ffplay.
     """
-    procs = []
     if sys.platform.startswith("linux"):
+        procs = []
         procs.append(subprocess.Popen(
             ["pw-play", "--target=virtual-sink", wav_path],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
@@ -188,12 +265,17 @@ def play_wav(wav_path):
             procs.append(subprocess.Popen(
                 ["pw-play", "--target=" + sink, wav_path],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
-    else:
-        procs.append(subprocess.Popen(
-            ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet",
-             wav_path],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
-    return procs
+        return procs
+
+    virtual = find_virtual_output()
+    if virtual is not None:
+        idx, _name = virtual
+        # Al cable virtual (para Discord) y al altavoz (para oírte).
+        return [_SdPlayer(wav_path, idx), _SdPlayer(wav_path, None)]
+
+    return [subprocess.Popen(
+        ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", wav_path],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)]
 
 
 def synthesize(text, engine, args, out_path):
