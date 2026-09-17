@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# Motor TTS multi-engine: edge-tts, gTTS, pyttsx3, espeak-ng (robot)
+# Motor TTS: edge-tts, gTTS, robot (espeak-ng)
 # Uso:
-#   python3 tts_engine.py "texto" [--engine edge|gtts|pyttsx3|robot] [--voice ID]
+#   python3 tts_engine.py "texto" [--engine edge|gtts|robot] [--voice ID]
 #       [--rate N] [--pitch N] [--volume N] [--lang CODE]
 #       [--robot-speed N] [--robot-pitch N] [--robot-metal N]
 #       [--save FILE] [--no-play]
@@ -12,12 +12,6 @@ import subprocess
 
 import edge_tts
 from gtts import gTTS
-
-try:
-    import pyttsx3
-    PYTTSX3_AVAILABLE = True
-except ImportError:
-    PYTTSX3_AVAILABLE = False
 
 ROBOT_VOICE = "🤖 Sonido Robot"
 SAMPLE_RATE = 48000
@@ -69,17 +63,6 @@ def list_voices(engine="edge"):
             {"label": "🌐 Google TTS — Inglés US (en)", "id": "en", "gender": "—", "engine": "gtts"},
             {"label": "🌐 Google TTS — Inglés UK (en-uk)", "id": "en-uk", "gender": "—", "engine": "gtts"},
         ]
-    elif engine == "pyttsx3":
-        if not PYTTSX3_AVAILABLE:
-            return [{"label": "⚠️ pyttsx3 no instalado", "id": "", "gender": "—", "engine": "pyttsx3"}]
-        try:
-            engine = pyttsx3.init()
-            voices = engine.getProperty('voices')
-            engine.stop()
-            return [{"label": f"🔧 {v.name} ({v.id})", "id": v.id, "gender": "—", "engine": "pyttsx3"}
-                    for v in voices] if voices else [{"label": "Sin voces disponibles", "id": "", "gender": "—", "engine": "pyttsx3"}]
-        except Exception:
-            return [{"label": "Error al listar voces pyttsx3", "id": "", "gender": "—", "engine": "pyttsx3"}]
     elif engine == "robot":
         return [{"label": ROBOT_VOICE, "id": ROBOT_VOICE, "gender": "Robot", "engine": "robot"}]
     return []
@@ -146,33 +129,6 @@ def gtts_synth(text, lang, slow, out_path):
     return wav
 
 
-def pyttsx3_synth(text, voice_id, rate, volume, out_path):
-    """Sintetiza con pyttsx3 (local, usa espeak/nsss/sapi5)."""
-    if not PYTTSX3_AVAILABLE:
-        raise RuntimeError("pyttsx3 no está instalado. Instala con: pip install pyttsx3")
-
-    ext = os.path.splitext(out_path)[1].lower()
-    if ext != ".wav":
-        out_path = os.path.splitext(out_path)[0] + ".wav"
-
-    engine = pyttsx3.init()
-    if voice_id:
-        engine.setProperty('voice', voice_id)
-    engine.setProperty('rate', max(50, min(400, rate)))
-    engine.setProperty('volume', max(0.0, min(1.0, volume / 100.0)))
-    engine.save_to_file(text, out_path)
-    engine.runAndWait()
-    engine.stop()
-
-    # Convertir a sample rate estándar
-    final_wav = os.path.splitext(out_path)[0] + "_48k.wav"
-    _run(["ffmpeg", "-y", "-i", out_path,
-          "-ar", str(SAMPLE_RATE), "-ac", "2", final_wav])
-    if os.path.exists(out_path) and out_path != final_wav:
-        os.remove(out_path)
-    return final_wav
-
-
 def robot_synth(text, speed, pitch, volume, metal, out_path):
     """Sintetiza con espeak-ng + efectos ffmpeg estilo SCP-079."""
     ext = os.path.splitext(out_path)[1].lower()
@@ -235,8 +191,6 @@ def synthesize(text, engine, args, out_path):
                            args.volume, args.robot_metal, out_path)
     elif engine == "gtts":
         return gtts_synth(text, args.lang, args.slow, out_path)
-    elif engine == "pyttsx3":
-        return pyttsx3_synth(text, args.voice, args.rate, args.volume, out_path)
     return edge_synth(text, args.voice, args.rate, args.pitch, args.volume,
                       out_path)
 
@@ -244,7 +198,7 @@ def synthesize(text, engine, args, out_path):
 def main():
     ap = argparse.ArgumentParser(description="Motor TTS multitud")
     ap.add_argument("text", help="Texto a decir")
-    ap.add_argument("--engine", choices=["edge", "gtts", "pyttsx3", "robot"], default="edge")
+    ap.add_argument("--engine", choices=["edge", "gtts", "robot"], default="edge")
     ap.add_argument("--voice", default="es-MX-JorgeNeural")
     ap.add_argument("--lang", default="es", help="Código de idioma para gTTS (es, en, etc.)")
     ap.add_argument("--slow", action="store_true", help="Voz lenta para gTTS")

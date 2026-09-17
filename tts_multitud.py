@@ -272,7 +272,7 @@ class TTSApp:
             side=tk.LEFT, padx=(0, 10))
         self.engine_combo = ttk.Combobox(
             self.inner, state="readonly", width=14,
-            values=["edge", "gtts", "pyttsx3", "robot"])
+            values=["edge", "gtts", "robot"])
         self.engine_combo.pack(side=tk.LEFT, padx=(0, 12))
         self.engine_combo.bind("<<ComboboxSelected>>", self._on_engine_changed)
         # Voz
@@ -478,9 +478,6 @@ class TTSApp:
             elif engine == "gtts":
                 self.hint.configure(text="🌐 Google TTS (requiere internet). Múltiples idiomas disponibles.",
                                     fg=self.pal["fg_dim"])
-            elif engine == "pyttsx3":
-                self.hint.configure(text="🔧 pyttsx3 (local, offline). Usa voces del sistema (espeak/nsss/sapi5).",
-                                    fg=self.pal["fg_dim"])
             else:
                 self.hint.configure(text="✨ Voces disponibles.",
                                     fg=self.pal["fg_dim"])
@@ -520,11 +517,6 @@ class TTSApp:
         elif engine == "gtts":
             opts = {"lang": voice["id"], "slow": False}
             return {"text": text, "engine": "gtts", "opts": opts,
-                    "widget": widget, "clear_after": clear_after}
-        elif engine == "pyttsx3":
-            opts = {"voice": voice["id"], "rate": max(50, min(400, 200 + rate)),
-                    "volume": max(0.0, min(1.0, (volume + 50) / 100.0))}
-            return {"text": text, "engine": "pyttsx3", "opts": opts,
                     "widget": widget, "clear_after": clear_after}
         # edge por defecto
         opts = {"voice": voice["id"], "rate": rate, "pitch": pitch,
@@ -679,7 +671,7 @@ class TTSApp:
         frm_eng.pack(fill=tk.X, padx=14)
         eng_var = tk.StringVar(value=self.current_engine)
         cb_eng = ttk.Combobox(frm_eng, state="readonly", textvariable=eng_var,
-                              values=["edge", "gtts", "pyttsx3", "robot"])
+values=["edge", "gtts", "robot"])
         cb_eng.pack(fill=tk.X)
         cb_eng.bind("<<ComboboxSelected>>", lambda e: self._on_engine_changed())
 

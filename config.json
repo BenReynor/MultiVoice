@@ -1,6 +1,6 @@
 {
-  "theme": "gruvbox",
-  "voice": "🔧 Aragonese (roa/an)",
+  "theme": "hacker",
+  "voice": "Jorge — México (M)",
   "rate": -15,
   "pitch": -25,
   "volume": 50,
@@ -8,5 +8,5 @@
   "auto_clear": true,
   "queue_enabled": true,
   "max_tabs": 5,
-  "engine": "pyttsx3"
+  "engine": "edge"
 }
