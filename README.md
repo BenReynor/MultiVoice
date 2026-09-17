@@ -14,6 +14,15 @@ Escríbelo en la ventana, pulsa Hablar y tu audiencia te oye con la voz elegida.
 
 Descarga el archivo de tu sistema desde [Releases](https://github.com/BenReynor/tts-multitud/releases), descomprímelo y ábrelo.
 
+- **Linux:** dale permisos y ejecútalo. Necesita `ffmpeg`, `espeak-ng` y `pactl`/`pw-play` instalados en el sistema.
+  ```bash
+  chmod +x tts-multitud && ./tts-multitud
+  ```
+- **Windows:** ejecútalo; si sale SmartScreen, *Más información → Ejecutar de todas formas*.
+- **macOS:** ábrelo; si Gatekeeper lo bloquea, clic derecho → *Abrir*, o `xattr -dr com.apple.quarantine tts-multitud.app`.
+
+El binario incluye Python y las librerías de voz, pero **no** `ffmpeg`/`espeak-ng` (el robot los necesita) ni el cable de audio virtual de Windows/macOS.
+
 ### Opción 2: desde el código
 
 Requiere Python 3.8+ y los paquetes del sistema `ffmpeg`, `espeak-ng` y `python3-tk`.
