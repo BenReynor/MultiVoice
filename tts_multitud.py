@@ -98,7 +98,7 @@ def save_config(cfg):
 
 MIC_SINK = "virtual-sink"
 MIC_SOURCE = "virtual-mic"
-MIC_DESCRIPTION = "Mi Micro Virtual"
+MIC_DESCRIPTION = "🎤"
 
 
 def _pactl(*args):
