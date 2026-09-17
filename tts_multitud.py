@@ -5,6 +5,7 @@
 import json
 import os
 import queue
+import subprocess
 import threading
 import tkinter as tk
 from tkinter import ttk, filedialog
@@ -93,6 +94,46 @@ def save_config(cfg):
             json.dump(cfg, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
+
+
+MIC_SINK = "virtual-sink"
+MIC_SOURCE = "virtual-mic"
+MIC_DESCRIPTION = "Mi Micro Virtual"
+
+
+def _pactl(*args):
+    return subprocess.run(["pactl", *args], stdout=subprocess.PIPE,
+                          stderr=subprocess.DEVNULL, text=True)
+
+
+def setup_virtual_mic():
+    """Carga el micrófono virtual en PulseAudio/PipeWire.
+
+    Devuelve la lista de ids de módulo cargados (para descargar después).
+    """
+    for mod in ("module-null-sink", "module-loopback",
+                "module-remap-source", "module-always-sink"):
+        _pactl("unload-module", mod)
+    ids = []
+    r = _pactl("load-module", "module-null-sink",
+               f"sink_name={MIC_SINK}",
+               "sink_properties=device.master_volume=1.0,sink_dont_move=yes",
+               "sample_spec=s16le=2ch=48000Hz")
+    if r.returncode == 0:
+        ids.append(r.stdout.strip())
+    r = _pactl("load-module", "module-remap-source",
+               f"source_name={MIC_SOURCE}",
+               f"master={MIC_SINK}.monitor",
+               f"source_properties=device.description={MIC_DESCRIPTION}")
+    if r.returncode == 0:
+        ids.append(r.stdout.strip())
+    return ids
+
+
+def teardown_virtual_mic(ids):
+    """Descarga los módulos del mic virtual (solo los que cargó la app)."""
+    for i in ids:
+        _pactl("unload-module", str(i))
 
 
 class SpeechWorker:
@@ -205,6 +246,8 @@ class TTSApp:
         self.tab_texts = {}
         self.tab_counter = 0
         self.buttons = []
+
+        self.mic_ids = setup_virtual_mic()
 
         self.worker = SpeechWorker(
             lambda msg: self.root.after(0, self.set_status, msg),
@@ -863,6 +906,7 @@ values=["edge", "gtts", "robot"])
         self.worker.stop()
         self.worker.running = False
         self.worker.q.put(None)
+        teardown_virtual_mic(self.mic_ids)
         self.root.destroy()
 
 
