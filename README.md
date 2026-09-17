@@ -14,6 +14,8 @@ Escríbelo en la ventana, pulsa Hablar y tu audiencia te oye con la voz elegida.
 
 Descarga el archivo de tu sistema desde [Releases](https://github.com/BenReynor/tts-multitud/releases), descomprímelo y ábrelo.
 
+El `.zip` se descarga en la carpeta **Descargas** del navegador y, al descomprimirlo, se crea la carpeta `tts-multitud-<SO>` donde elijas. No se instala nada ni se crean accesos directos: el ejecutable corre desde donde lo descomprimas y lo puedes mover a donde quieras.
+
 - **Linux:** dale permisos y ejecútalo. Necesita `ffmpeg`, `espeak-ng` y `pactl`/`pw-play` instalados en el sistema.
   ```bash
   chmod +x tts-multitud && ./tts-multitud
@@ -28,6 +30,8 @@ El binario incluye Python y las librerías de voz, pero **no** `ffmpeg`/`espeak-
 Requiere Python 3.8+ y los paquetes del sistema `ffmpeg`, `espeak-ng` y `python3-tk`.
 
 ```bash
+git clone https://github.com/BenReynor/tts-multitud.git
+cd tts-multitud
 python3 -m pip install -r requirements.txt
 ```
 
@@ -39,7 +43,8 @@ sudo apt install ffmpeg espeak-ng python3-tk
 
 ## Inicio rápido
 
-Abre la app:
+- **Binario descargado:** abre `tts-multitud` (Linux/macOS) o `tts-multitud.exe` (Windows).
+- **Desde el código:**
 
 ```bash
 ./iniciar.sh
