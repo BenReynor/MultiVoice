@@ -175,8 +175,8 @@ def get_default_sink():
 
 # Nombres de cables virtuales por sistema (subcadena, sin distinguir mayúsculas)
 VIRTUAL_DEVICE_HINTS = {
-    "win32": ["cable input", "vb-audio", "voicemeeter", "virtual audio"],
-    "darwin": ["blackhole", "loopback", "soundflower", "virtual"],
+    "win32": ["cable input", "vb-audio", "voicemeeter"],
+    "darwin": ["blackhole", "loopback", "soundflower"],
 }
 
 
