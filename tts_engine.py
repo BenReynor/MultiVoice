@@ -9,6 +9,7 @@ import argparse
 import asyncio
 import os
 import subprocess
+import sys
 
 import edge_tts
 from gtts import gTTS
@@ -172,15 +173,25 @@ def get_default_sink():
 
 
 def play_wav(wav_path):
-    """Reproduce en el micrófono virtual y en los audífonos."""
+    """Reproduce el audio.
+
+    Linux: al micrófono virtual y al altavoz.
+    Windows/macOS: por el altavoz predeterminado (necesita ffmpeg/ffplay).
+    """
     procs = []
-    procs.append(subprocess.Popen(
-        ["pw-play", "--target=virtual-sink", wav_path],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
-    sink = get_default_sink()
-    if sink:
+    if sys.platform.startswith("linux"):
         procs.append(subprocess.Popen(
-            ["pw-play", "--target=" + sink, wav_path],
+            ["pw-play", "--target=virtual-sink", wav_path],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+        sink = get_default_sink()
+        if sink:
+            procs.append(subprocess.Popen(
+                ["pw-play", "--target=" + sink, wav_path],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+    else:
+        procs.append(subprocess.Popen(
+            ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet",
+             wav_path],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
     return procs
 

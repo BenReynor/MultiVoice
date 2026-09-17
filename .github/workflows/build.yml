@@ -1,0 +1,87 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Dependencias del sistema (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak-ng
+      - name: Dependencias Python
+        run: pip install -r requirements.txt
+      - name: Prueba de humo
+        run: python tests/smoke_test.py
+
+  build:
+    name: Build (${{ matrix.os }})
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Dependencias y PyInstaller
+        run: pip install -r requirements.txt pyinstaller
+      - name: Compilar ejecutable
+        run: >
+          pyinstaller --noconfirm --clean --onefile --windowed
+          --name tts-multitud
+          --collect-all edge_tts
+          --collect-all gtts
+          tts_multitud.py
+      - name: Subir artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: tts-multitud-${{ runner.os }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Publicar release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Descargar binarios
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Empaquetar por SO
+        run: |
+          cd artifacts
+          for d in */; do
+            name="${d%/}"
+            zip -r "../${name}.zip" "$d"
+          done
+      - name: Crear release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.zip"
+          generate_release_notes: true

@@ -6,6 +6,7 @@ import json
 import os
 import queue
 import subprocess
+import sys
 import threading
 import tkinter as tk
 from tkinter import ttk, filedialog
@@ -109,8 +110,11 @@ def _pactl(*args):
 def setup_virtual_mic():
     """Carga el micrófono virtual en PulseAudio/PipeWire.
 
+    Solo Linux: en Windows/macOS no hay mic virtual, así que no hace nada.
     Devuelve la lista de ids de módulo cargados (para descargar después).
     """
+    if not sys.platform.startswith("linux"):
+        return []
     for mod in ("module-null-sink", "module-loopback",
                 "module-remap-source", "module-always-sink"):
         _pactl("unload-module", mod)
