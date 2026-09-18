@@ -119,4 +119,4 @@ The virtual cable sends audio to Discord but not to your speakers; to hear yours
 
 ## License
 
-Personal use. No public license.
+[Unlicense](LICENSE) — public domain. Free for any use, commercial or not, without restriction.
