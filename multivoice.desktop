@@ -1,10 +1,13 @@
 [Desktop Entry]
 # Launcher template. Do NOT use this file directly:
 # run ./install.sh to generate the launcher with the paths of your copy.
+#
+# install.sh writes a dynamic launcher to ~/.local/bin/multivoice that finds
+# the MultiVoice folder even if you move it, so this file is just a template.
 Name=MultiVoice
 Comment=Speak through a virtual microphone
-Exec=bash -c "REPO_PATH/start.sh"
-Icon=REPO_PATH/assets/icon.png
+Exec=~/.local/bin/multivoice
+Icon=~/.local/share/icons/multivoice.png
 Terminal=false
 Type=Application
 Categories=AudioVideo;Audio;
