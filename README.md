@@ -12,18 +12,26 @@ Escríbelo en la ventana, pulsa Hablar y tu audiencia te oye con la voz elegida.
 
 ### Opción 1: binario ya compilado (Windows, macOS y Linux)
 
-Descarga el archivo de tu sistema desde [Releases](https://github.com/BenReynor/tts-multitud/releases), descomprímelo y ábrelo.
+Descarga el archivo de tu sistema desde [Releases](https://github.com/BenReynor/tts-multitud/releases) (la última versión: `v1.1.0`), descomprímelo y ábrelo. Hay un `.zip` por sistema:
+
+- `tts-multitud-linux-x86_64.zip` → Linux en procesador Intel/AMD (la mayoría)
+- `tts-multitud-linux-arm64.zip` → Linux en ARM (Raspberry Pi, muchos ARM)
+- `tts-multitud-windows-x64.zip` → Windows
+- `tts-multitud-macos-arm64.zip` → macOS en Apple Silicon (M1/M2/M3/M4)
+- `tts-multitud-macos-intel.zip` → macOS en procesador Intel
+
+Si no sabes cuál es tu macOS, *Apple  →  Acerca de este Mac*; si no pone "Apple", es Intel.
 
 El `.zip` se descarga en la carpeta **Descargas** del navegador y, al descomprimirlo, se crea la carpeta `tts-multitud-<SO>` donde elijas. No se instala nada ni se crean accesos directos: el ejecutable corre desde donde lo descomprimas y lo puedes mover a donde quieras.
 
-- **Linux:** dale permisos y ejecútalo. Necesita `ffmpeg`, `espeak-ng` y `pactl`/`pw-play` instalados en el sistema.
+- **Linux:** dale permisos y ejecútalo. Solo necesita `pactl`/`pw-play` (PipeWire) para crear el micrófono virtual; `ffmpeg` y `espeak-ng` ya van incluidos.
   ```bash
   chmod +x tts-multitud && ./tts-multitud
   ```
 - **Windows:** ejecútalo; si sale SmartScreen, *Más información → Ejecutar de todas formas*.
 - **macOS:** ábrelo; si Gatekeeper lo bloquea, clic derecho → *Abrir*, o `xattr -dr com.apple.quarantine tts-multitud.app`.
 
-El binario incluye Python y las librerías de voz, pero **no** `ffmpeg`/`espeak-ng` (el robot los necesita) ni el cable de audio virtual de Windows/macOS.
+El binario incluye Python, las librerías de voz, `ffmpeg` y `espeak-ng`. No incluye el cable de audio virtual de Windows/macOS, que debe instalarse aparte (ver abajo).
 
 ### Opción 2: desde el código
 
@@ -101,7 +109,7 @@ El cable virtual manda el audio a Discord, pero no a tus altavoces; para oírte 
 
 - El mic virtual `🎤` solo existe en Linux y mientras la app está abierta; si quieres elegirlo en Discord, ten la app abierta.
 - En Windows y macOS la app usa el cable virtual del sistema (BlackHole o VB-CABLE) si lo tienes instalado; si no, reproduce por el altavoz.
-- Edge TTS y Google TTS necesitan internet. El robot funciona sin conexión y necesita `espeak-ng` y `ffmpeg` instalados.
+- Edge TTS y Google TTS necesitan internet. El robot funciona sin conexión y usa `espeak-ng`; en los binarios ya va incluido (desde el código necesitas tenerlo instalado).
 
 ## Licencia
 
