@@ -1,3 +1,4 @@
 edge-tts
 gTTS
+imageio-ffmpeg
 sounddevice; sys_platform != "linux"

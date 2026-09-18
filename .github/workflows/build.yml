@@ -32,38 +32,119 @@ jobs:
         run: python tests/smoke_test.py
 
   build:
-    name: Build (${{ matrix.os }})
+    name: Build (${{ matrix.label }})
     needs: test
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            label: linux-x86_64
+          - os: ubuntu-24.04-arm
+            label: linux-arm64
+          - os: windows-latest
+            label: windows-x64
+          - os: macos-13
+            label: macos-intel
+          - os: macos-latest
+            label: macos-arm64
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
+
+      - name: Dependencias de sistema
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Linux)
+              sudo apt-get update
+              sudo apt-get install -y ffmpeg espeak-ng
+              ;;
+            macOS)
+              brew install espeak-ng || true
+              ;;
+          esac
+
+      - name: Empacar espeak-ng con la app (best effort)
+        shell: bash
+        run: |
+          mkdir -p bundle/bin
+          case "$RUNNER_OS" in
+            Linux)
+              if command -v espeak-ng >/dev/null 2>&1; then
+                cp "$(command -v espeak-ng)" bundle/bin/ || true
+                ldd "$(command -v espeak-ng)" 2>/dev/null | awk '/=>/{print $3}' | xargs -r -I{} cp -n {} bundle/bin/ 2>/dev/null || true
+                cp -rn /usr/lib/*/espeak-ng-data /usr/share/espeak-ng-data bundle/bin/ 2>/dev/null || true
+              fi
+              ;;
+            macOS)
+              ES="$(brew --prefix espeak-ng 2>/dev/null)/bin/espeak-ng"
+              if [ -x "$ES" ]; then
+                cp "$ES" bundle/bin/
+                for lib in $(otool -L "$ES" | tail -n +2 | awk '{print $1}'); do
+                  case "$lib" in
+                    /opt/homebrew/lib/*|/usr/local/lib/*) cp -n "$lib" bundle/bin/ 2>/dev/null || true ;;
+                  esac
+                done
+                cp -rn "$(brew --prefix espeak-ng)/share/espeak-ng-data" bundle/bin/ 2>/dev/null || true
+              fi
+              ;;
+            Windows)
+              curl -fsSL -o espeak-ng.msi https://github.com/espeak-ng/espeak-ng/releases/download/1.52.0/espeak-ng.msi
+              msiexec //a espeak-ng.msi //qn TARGETDIR="$PWD/espeak" >/dev/null 2>&1 || true
+              if [ -d espeak ]; then
+                find espeak -iname "espeak-ng.exe" -exec cp -f {} bundle/bin/ \; 2>/dev/null || true
+                find espeak -iname "*.dll" -exec cp -n {} bundle/bin/ \; 2>/dev/null || true
+                find espeak -type d -iname "espeak-ng-data" -exec cp -rn {} bundle/bin/ \; 2>/dev/null || true
+              fi
+              ;;
+          esac
+          ls -la bundle/bin || true
+
       - name: Dependencias y PyInstaller
-        run: pip install -r requirements.txt pyinstaller
+        shell: bash
+        run: pip install -r requirements.txt pyinstaller pillow
+
+      - name: Crear icono .icns (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          mkdir -p icon.iconset
+          for p in "16 icon_16x16" "32 icon_16x16@2x" "32 icon_32x32" "64 icon_32x32@2x" \
+                   "128 icon_128x128" "256 icon_128x128@2x" "256 icon_256x256" \
+                   "512 icon_256x256@2x" "512 icon_512x512" "1024 icon_512x512@2x"; do
+            set -- $p
+            sips -z $1 $1 assets/icon.png --out "icon.iconset/$2.png" >/dev/null
+          done
+          iconutil -c icns icon.iconset -o assets/icon.icns
+          ls -la assets/icon.icns
+
       - name: Compilar ejecutable
         shell: bash
         run: |
-          EXTRA=""
-          if [ "$RUNNER_OS" != "Linux" ]; then
-            EXTRA="--hidden-import sounddevice"
+          SEP=":"
+          if [ "$RUNNER_OS" = "Windows" ]; then SEP=";"; fi
+          ARGS=(pyinstaller --noconfirm --clean --onefile --windowed --name tts-multitud)
+          ARGS+=(--collect-all edge_tts --collect-all gtts --collect-all imageio_ffmpeg)
+          case "$RUNNER_OS" in
+            Windows) ARGS+=(--icon assets/icon.ico --version-file packaging/version_info.txt --hidden-import sounddevice) ;;
+            macOS)   ARGS+=(--icon assets/icon.icns --osx-bundle-identifier com.benreynor.ttsmultitud --hidden-import sounddevice) ;;
+          esac
+          if [ -d bundle/bin ]; then
+            ARGS+=(--add-data "bundle/bin${SEP}bin")
           fi
-          pyinstaller --noconfirm --clean --onefile --windowed \
-            --name tts-multitud \
-            --collect-all edge_tts \
-            --collect-all gtts \
-            $EXTRA \
-            tts_multitud.py
+          "${ARGS[@]}" tts_multitud.py
+          ls -la dist
+
       - name: Subir artefacto
         uses: actions/upload-artifact@v4
         with:
-          name: tts-multitud-${{ runner.os }}
+          name: tts-multitud-${{ matrix.label }}
           path: dist/*
           if-no-files-found: error
 
@@ -72,6 +153,7 @@ jobs:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
     steps:

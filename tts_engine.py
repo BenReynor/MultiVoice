@@ -8,6 +8,7 @@
 import argparse
 import asyncio
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -45,6 +46,61 @@ def _run(cmd, **kw):
     return subprocess.run(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         text=True, **kw)
+
+
+def _resource_dir():
+    return getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+
+
+def _find_bin(name):
+    """Busca un ejecutable incluido en el paquete (bin/) y si no en el PATH."""
+    exe = name + ".exe" if sys.platform.startswith("win") else name
+    base = _resource_dir()
+    for cand in (os.path.join(base, "bin", exe), os.path.join(base, exe)):
+        if os.path.exists(cand):
+            try:
+                os.chmod(cand, 0o755)
+            except OSError:
+                pass
+            return cand
+    return shutil.which(name) or name
+
+
+def ffmpeg_bin():
+    """Ruta a ffmpeg: incluido en el paquete, imageio-ffmpeg o el sistema."""
+    path = _find_bin("ffmpeg")
+    if path != "ffmpeg":
+        return path
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return "ffmpeg"
+
+
+def espeak_bin():
+    """Ruta a espeak-ng: incluido en el paquete o el sistema."""
+    return _find_bin("espeak-ng")
+
+
+def _espeak_env():
+    """Prepara el entorno si el paquete incluye espeak-ng y sus datos."""
+    base = _resource_dir()
+    bin_dir = os.path.join(base, "bin")
+    data_parent = None
+    for parent in (bin_dir, base):
+        if os.path.isdir(os.path.join(parent, "espeak-ng-data")):
+            data_parent = parent
+            break
+    if not data_parent and not os.path.isdir(bin_dir):
+        return None
+    env = dict(os.environ)
+    env["ESPEAK_DATA_PATH"] = data_parent or base
+    ld = os.environ.get("LD_LIBRARY_PATH", "")
+    env["LD_LIBRARY_PATH"] = bin_dir + (":" + ld if ld else "")
+    dy = os.environ.get("DYLD_LIBRARY_PATH", "")
+    env["DYLD_LIBRARY_PATH"] = bin_dir + (":" + dy if dy else "")
+    return env
 
 
 def _pipe_to_devnull(r):
@@ -99,7 +155,7 @@ def edge_synth(text, voice, rate, pitch, volume, out_path):
         return out_path
 
     wav = os.path.splitext(out_path)[0] + ".wav"
-    _run(["ffmpeg", "-y", "-i", tmp_mp3,
+    _run([ffmpeg_bin(), "-y", "-i", tmp_mp3,
           "-ar", str(SAMPLE_RATE), "-ac", "2", wav])
     if os.path.exists(tmp_mp3):
         os.remove(tmp_mp3)
@@ -124,7 +180,7 @@ def gtts_synth(text, lang, slow, out_path):
         return out_path
 
     wav = os.path.splitext(out_path)[0] + ".wav"
-    _run(["ffmpeg", "-y", "-i", tmp_mp3,
+    _run([ffmpeg_bin(), "-y", "-i", tmp_mp3,
           "-ar", str(SAMPLE_RATE), "-ac", "2", wav])
     if os.path.exists(tmp_mp3):
         os.remove(tmp_mp3)
@@ -140,8 +196,8 @@ def robot_synth(text, speed, pitch, volume, metal, out_path):
     pitch = max(1, min(99, int(pitch)))
     metal = max(0.0, min(1.0, float(metal)))
 
-    _run(["espeak-ng", "-v", "es+m1", "-p", str(pitch), "-s", str(speed),
-          "-a", "150", "-g", "12", "-w", raw, text])
+    _run([espeak_bin(), "-v", "es+m1", "-p", str(pitch), "-s", str(speed),
+          "-a", "150", "-g", "12", "-w", raw, text], env=_espeak_env())
 
     factor = 0.72 - 0.30 * metal
     atempo = 1.0 / factor
@@ -161,7 +217,7 @@ def robot_synth(text, speed, pitch, volume, metal, out_path):
         f"acrusher=bits=10:mode=log:mix={acrusher_mix:.3f},"
         f"volume={volume:+d}dB"
     )
-    _run(["ffmpeg", "-y", "-i", raw, "-af", af,
+    _run([ffmpeg_bin(), "-y", "-i", raw, "-af", af,
           "-ar", str(SAMPLE_RATE), "-ac", "2", out_path])
     if os.path.exists(raw):
         os.remove(raw)
@@ -253,7 +309,7 @@ def play_wav(wav_path):
 
     Linux: al micrófono virtual y al altavoz, con pw-play.
     Windows/macOS: al cable virtual (si está instalado) y al altavoz, con
-    sounddevice; si no hay cable virtual, solo al altavoz con ffplay.
+    sounddevice.
     """
     if sys.platform.startswith("linux"):
         procs = []
@@ -267,15 +323,13 @@ def play_wav(wav_path):
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
         return procs
 
+    players = []
     virtual = find_virtual_output()
     if virtual is not None:
-        idx, _name = virtual
-        # Al cable virtual (para Discord) y al altavoz (para oírte).
-        return [_SdPlayer(wav_path, idx), _SdPlayer(wav_path, None)]
-
-    return [subprocess.Popen(
-        ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", wav_path],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)]
+        players.append(_SdPlayer(wav_path, virtual[0]))
+    # Al altavoz predeterminado (para oírte) además del cable virtual.
+    players.append(_SdPlayer(wav_path, None))
+    return players
 
 
 def synthesize(text, engine, args, out_path):

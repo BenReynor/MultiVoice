@@ -1,6 +1,7 @@
 """Prueba de humo multiplataforma: no abre la ventana ni reproduce audio."""
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 
@@ -59,9 +60,18 @@ def check_virtual_device():
     print(f"virtual device: {found[1] if found else 'ninguno (fallback altavoz)'}")
 
 
+def check_ffmpeg():
+    exe = tts_engine.ffmpeg_bin()
+    r = subprocess.run([exe, "-version"], stdout=subprocess.PIPE,
+                       stderr=subprocess.STDOUT, text=True)
+    assert r.returncode == 0, f"ffmpeg no funciona: {exe}"
+    print(f"ffmpeg OK: {exe}")
+
+
 def main():
     check_engines()
     check_virtual_device()
+    check_ffmpeg()
     check_edge_synth()
     check_robot_synth()
     print("SMOKE OK")
