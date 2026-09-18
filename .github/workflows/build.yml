@@ -46,16 +46,19 @@ jobs:
             label: linux-arm64
           - os: windows-latest
             label: windows-x64
-          - os: macos-13
+          - os: macos-latest
             label: macos-intel
+            python_arch: x64
           - os: macos-latest
             label: macos-arm64
+            python_arch: arm64
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
+          architecture: ${{ matrix.python_arch }}
 
       - name: Dependencias de sistema
         shell: bash
@@ -72,6 +75,8 @@ jobs:
 
       - name: Empacar espeak-ng con la app (best effort)
         shell: bash
+        env:
+          PY_ARCH: ${{ matrix.python_arch }}
         run: |
           mkdir -p bundle/bin
           case "$RUNNER_OS" in
@@ -83,15 +88,19 @@ jobs:
               fi
               ;;
             macOS)
-              ES="$(brew --prefix espeak-ng 2>/dev/null)/bin/espeak-ng"
-              if [ -x "$ES" ]; then
-                cp "$ES" bundle/bin/
-                for lib in $(otool -L "$ES" | tail -n +2 | awk '{print $1}'); do
-                  case "$lib" in
-                    /opt/homebrew/lib/*|/usr/local/lib/*) cp -n "$lib" bundle/bin/ 2>/dev/null || true ;;
-                  esac
-                done
-                cp -rn "$(brew --prefix espeak-ng)/share/espeak-ng-data" bundle/bin/ 2>/dev/null || true
+              if [ "$PY_ARCH" = "x64" ]; then
+                echo "Saltamos espeak en el build Intel (brew instala arm64)"
+              else
+                ES="$(brew --prefix espeak-ng 2>/dev/null)/bin/espeak-ng"
+                if [ -x "$ES" ]; then
+                  cp "$ES" bundle/bin/
+                  for lib in $(otool -L "$ES" | tail -n +2 | awk '{print $1}'); do
+                    case "$lib" in
+                      /opt/homebrew/lib/*|/usr/local/lib/*) cp -n "$lib" bundle/bin/ 2>/dev/null || true ;;
+                    esac
+                  done
+                  cp -rn "$(brew --prefix espeak-ng)/share/espeak-ng-data" bundle/bin/ 2>/dev/null || true
+                fi
               fi
               ;;
             Windows)
