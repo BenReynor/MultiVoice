@@ -116,7 +116,3 @@ The virtual cable sends audio to Discord but not to your speakers; to hear yours
 - The `🎤` virtual mic only exists on Linux and while the app is open; if you want to choose it in Discord, keep the app open.
 - On Windows and macOS the app uses the system virtual cable (BlackHole or VB-CABLE) if installed; otherwise it plays through the speakers.
 - Edge TTS and Google TTS need internet. The robot works offline and uses `espeak-ng`; it is bundled in the binaries (from source you need to have it installed).
-
-## License
-
-[Unlicense](LICENSE) — public domain. Free for any use, commercial or not, without restriction.
