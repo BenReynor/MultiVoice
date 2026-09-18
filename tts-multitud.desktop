@@ -1,6 +1,6 @@
 [Desktop Entry]
 # Plantilla de acceso directo. NO uses este archivo directamente:
-# ejecuta ./instalar_acceso.sh para generar el acceso con las rutas de tu copia.
+# ejecuta ./instalar.sh para generar el acceso con las rutas de tu copia.
 Name=TTS Multitud
 Comment=Hablar por micrófono virtual
 Exec=bash -c "RUTA_DEL_REPO/iniciar.sh"

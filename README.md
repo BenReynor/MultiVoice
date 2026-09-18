@@ -46,7 +46,7 @@ python3 -m pip install -r requirements.txt
 Para crear el acceso directo (con el icono de la app) en el menú de aplicaciones y en el escritorio:
 
 ```bash
-./instalar_acceso.sh
+./instalar.sh
 ```
 
 En Debian/Ubuntu, para las dependencias del sistema:
