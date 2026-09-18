@@ -1,8 +1,10 @@
 [Desktop Entry]
+# Plantilla de acceso directo. NO uses este archivo directamente:
+# ejecuta ./instalar_acceso.sh para generar el acceso con las rutas de tu copia.
 Name=TTS Multitud
 Comment=Hablar por micrófono virtual
-Exec=bash -c '/home/benjametalsp/Escritorio/mic_virtual/iniciar.sh'
-Icon=audio-volume-high
+Exec=bash -c "RUTA_DEL_REPO/iniciar.sh"
+Icon=RUTA_DEL_REPO/assets/icon.png
 Terminal=false
 Type=Application
 Categories=AudioVideo;Audio;
