@@ -1,6 +1,6 @@
 <div align="center">
 
-# TTS Multitud
+# Multivoz
 
 **Convierte texto en voz y habla por un micrófono virtual en Discord y otras apps**
 

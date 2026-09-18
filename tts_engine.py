@@ -343,7 +343,7 @@ def synthesize(text, engine, args, out_path):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Motor TTS multitud")
+    ap = argparse.ArgumentParser(description="Motor de voz Multivoz")
     ap.add_argument("text", help="Texto a decir")
     ap.add_argument("--engine", choices=["edge", "gtts", "robot"], default="edge")
     ap.add_argument("--voice", default="es-MX-JorgeNeural")

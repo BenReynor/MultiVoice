@@ -1,7 +1,7 @@
 [Desktop Entry]
 # Plantilla de acceso directo. NO uses este archivo directamente:
 # ejecuta ./instalar.sh para generar el acceso con las rutas de tu copia.
-Name=TTS Multitud
+Name=Multivoz
 Comment=Hablar por micrófono virtual
 Exec=bash -c "RUTA_DEL_REPO/iniciar.sh"
 Icon=RUTA_DEL_REPO/assets/icon.png

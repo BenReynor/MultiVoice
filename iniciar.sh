@@ -1,6 +1,6 @@
 #!/bin/bash
-# Launcher - Iniciar TTS Multitud (la app crea y elimina el mic virtual)
+# Launcher - Iniciar Multivoz (la app crea y elimina el mic virtual)
 cd "$(dirname "$0")"
 
-echo "🔊 Iniciando TTS Multitud..."
+echo "🔊 Iniciando Multivoz..."
 python3 tts_multitud.py

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# TTS Multitud - UI con pestañas, voces neuronales y robot SCP-079
+# Multivoz - UI con pestañas, voces neuronales y robot SCP-079
 # Uso: python3 tts_multitud.py
 
 import json
@@ -306,14 +306,14 @@ class TTSApp:
 
     # ---------- UI ----------
     def _build_ui(self):
-        self.root.title("TTS Multitud")
+        self.root.title("Multivoz")
         self.root.geometry("760x640")
         self.root.minsize(680, 560)
 
         # ---- Cabecera ----
         self.top = tk.Frame(self.root)
         self.top.pack(fill=tk.X, padx=16, pady=(12, 0))
-        tk.Label(self.top, text="🎙 TTS Multitud",
+        tk.Label(self.top, text="🎙 Multivoz",
                  font=("Ubuntu", 15, "bold")).pack(side=tk.LEFT)
         self.btn_settings = self._btn(self.top, "⚙ Ajustes", self.open_settings)
         self.btn_settings.pack(side=tk.RIGHT, padx=(6, 0))

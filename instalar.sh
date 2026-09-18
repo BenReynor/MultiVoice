@@ -1,5 +1,5 @@
 #!/bin/bash
-# Crea el acceso directo "TTS Multitud" en el menú de aplicaciones y en el escritorio.
+# Crea el acceso directo "Multivoz" en el menú de aplicaciones y en el escritorio.
 # Este script genera el .desktop con las rutas de tu copia del repositorio.
 set -e
 
@@ -13,7 +13,7 @@ cp "$REPO/assets/icon.png" "$ICON_DIR/$APP.png"
 
 cat > "$APP_DIR/$APP.desktop" <<EOF
 [Desktop Entry]
-Name=TTS Multitud
+Name=Multivoz
 Comment=Hablar por micrófono virtual
 Exec=bash -c "$REPO/iniciar.sh"
 Icon=$ICON_DIR/$APP.png
@@ -33,4 +33,4 @@ for DESK in "$(xdg-user-dir DESKTOP 2>/dev/null)" "$HOME/Escritorio" "$HOME/Desk
 done
 
 update-desktop-database "$APP_DIR" 2>/dev/null || true
-echo "✅ TTS Multitud accesible desde el buscador de aplicaciones."
+echo "✅ Multivoz accesible desde el buscador de aplicaciones."
