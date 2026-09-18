@@ -21,14 +21,14 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - name: Dependencias del sistema (Linux)
+      - name: System dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg espeak-ng
-      - name: Dependencias Python
+      - name: Python dependencies
         run: pip install -r requirements.txt
-      - name: Prueba de humo
+      - name: Smoke test
         run: python tests/smoke_test.py
 
   build:
@@ -60,7 +60,7 @@ jobs:
           cache: pip
           architecture: ${{ matrix.python_arch }}
 
-      - name: Dependencias de sistema
+      - name: System dependencies
         shell: bash
         run: |
           case "$RUNNER_OS" in
@@ -73,7 +73,7 @@ jobs:
               ;;
           esac
 
-      - name: Empacar espeak-ng con la app (best effort)
+      - name: Bundle espeak-ng with the app (best effort)
         shell: bash
         env:
           PY_ARCH: ${{ matrix.python_arch }}
@@ -89,7 +89,7 @@ jobs:
               ;;
             macOS)
               if [ "$PY_ARCH" = "x64" ]; then
-                echo "Saltamos espeak en el build Intel (brew instala arm64)"
+                echo "Skipping espeak on the Intel build (brew installs arm64)"
               else
                 ES="$(brew --prefix espeak-ng 2>/dev/null)/bin/espeak-ng"
                 if [ -x "$ES" ]; then
@@ -115,11 +115,11 @@ jobs:
           esac
           ls -la bundle/bin || true
 
-      - name: Dependencias y PyInstaller
+      - name: Dependencies and PyInstaller
         shell: bash
         run: pip install -r requirements.txt pyinstaller pillow
 
-      - name: Crear icono .icns (macOS)
+      - name: Create .icns icon (macOS)
         if: runner.os == 'macOS'
         shell: bash
         run: |
@@ -133,32 +133,32 @@ jobs:
           iconutil -c icns icon.iconset -o assets/icon.icns
           ls -la assets/icon.icns
 
-      - name: Compilar ejecutable
+      - name: Build executable
         shell: bash
         run: |
           SEP=":"
           if [ "$RUNNER_OS" = "Windows" ]; then SEP=";"; fi
-          ARGS=(pyinstaller --noconfirm --clean --onefile --windowed --name tts-multitud)
+          ARGS=(pyinstaller --noconfirm --clean --onefile --windowed --name multivoice)
           ARGS+=(--collect-all edge_tts --collect-all gtts --collect-all imageio_ffmpeg)
           case "$RUNNER_OS" in
             Windows) ARGS+=(--icon assets/icon.ico --version-file packaging/version_info.txt --hidden-import sounddevice) ;;
-            macOS)   ARGS+=(--icon assets/icon.icns --osx-bundle-identifier com.benreynor.ttsmultitud --hidden-import sounddevice) ;;
+            macOS)   ARGS+=(--icon assets/icon.icns --osx-bundle-identifier com.benreynor.multivoice --hidden-import sounddevice) ;;
           esac
           if [ -d bundle/bin ]; then
             ARGS+=(--add-data "bundle/bin${SEP}bin")
           fi
-          "${ARGS[@]}" tts_multitud.py
+          "${ARGS[@]}" multivoice.py
           ls -la dist
 
-      - name: Subir artefacto
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tts-multitud-${{ matrix.label }}
+          name: multivoice-${{ matrix.label }}
           path: dist/*
           if-no-files-found: error
 
   release:
-    name: Publicar release
+    name: Publish release
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
@@ -167,18 +167,18 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Descargar binarios
+      - name: Download binaries
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-      - name: Empaquetar por SO
+      - name: Package per OS
         run: |
           cd artifacts
           for d in */; do
             name="${d%/}"
             zip -r "../${name}.zip" "$d"
           done
-      - name: Crear release
+      - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -186,6 +186,6 @@ jobs:
             gh release upload "$GITHUB_REF_NAME" ./*.zip --clobber
           else
             gh release create "$GITHUB_REF_NAME" ./*.zip \
-              --title "Multivoz $GITHUB_REF_NAME" \
+              --title "MultiVoice $GITHUB_REF_NAME" \
               --generate-notes
           fi

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Iniciar micrófono virtual para Discord
+# Start the virtual microphone for Discord
 
 pactl unload-module module-null-sink 2>/dev/null
 pactl unload-module module-loopback 2>/dev/null
@@ -13,4 +13,4 @@ pactl load-module module-remap-source source_name=virtual-mic master=virtual-sin
 pactl set-default-sink alsa_output.usb-Generic_USB_Audio_Device_20210726905926-00.analog-stereo
 pactl set-default-source alsa_input.usb-Generic_USB_Audio_Device_20210726905926-00.mono-fallback
 
-echo "✅ Micrófono virtual listo: '🎤'"
+echo "✅ Virtual mic ready: '🎤'"

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Multivoz - UI con pestañas, voces neuronales y robot SCP-079
-# Uso: python3 tts_multitud.py
+# MultiVoice - GUI with tabs, neural voices and SCP-079 robot
+# Usage: python3 multivoice.py
 
 import json
 import os
@@ -18,9 +18,9 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(SCRIPT_DIR, "config.json")
 ROBOT_VOICE = tts_engine.ROBOT_VOICE
 PROBE_TEXTS = [
-    "Hola, esta es tu nueva voz de prueba. ¿Cómo me escuchas?",
-    "El otro día vi una luz extraña en el pasillo de la fundación.",
-    "Todas las amenazas han sido neutralizadas. Todo está bajo control.",
+    "Hi, this is your new test voice. How do I sound?",
+    "I saw a strange light in the Foundation corridor the other day.",
+    "All threats have been neutralized. Everything is under control.",
 ]
 
 THEMES = {
@@ -108,10 +108,10 @@ def _pactl(*args):
 
 
 def setup_virtual_mic():
-    """Carga el micrófono virtual en PulseAudio/PipeWire.
+    """Load the virtual microphone in PulseAudio/PipeWire.
 
-    Solo Linux: en Windows/macOS no hay mic virtual, así que no hace nada.
-    Devuelve la lista de ids de módulo cargados (para descargar después).
+    Linux only: on Windows/macOS there is no virtual mic, so it does nothing.
+    Returns the list of loaded module ids (to unload later).
     """
     if not sys.platform.startswith("linux"):
         return []
@@ -135,16 +135,16 @@ def setup_virtual_mic():
 
 
 def teardown_virtual_mic(ids):
-    """Descarga los módulos del mic virtual (solo los que cargó la app)."""
+    """Unload the virtual mic modules (only the ones the app loaded)."""
     for i in ids:
         _pactl("unload-module", str(i))
 
 
 class SpeechWorker:
-    """Cola de síntesis + reproducción con capacidad de detener."""
+    """Synthesis queue + playback with the ability to stop."""
 
     def __init__(self, status_cb, on_clear=None):
-        # status_cb y on_clear deben programarse via root.after
+        # status_cb and on_clear must be scheduled via root.after
         self.q = queue.Queue()
         self.lock = threading.Lock()
         self.procs = []
@@ -165,9 +165,9 @@ class SpeechWorker:
                 self.stop_requested = False
                 continue
             self.busy = True
-            self.status_cb("🔊 Hablando...")
+            self.status_cb("🔊 Speaking...")
             tmp = os.path.join(os.environ.get("TMPDIR", "/tmp"),
-                               f"tts_multitud_{threading.get_ident()}_{id(job)}.wav")
+                               f"multivoice_{threading.get_ident()}_{id(job)}.wav")
             try:
                 args = SimpleNamespace(**job["opts"])
                 wav = tts_engine.synthesize(job["text"], job["engine"], args,
@@ -183,7 +183,7 @@ class SpeechWorker:
                 if not self.stop_requested:
                     if job.get("clear_after") and self.on_clear:
                         self.on_clear(job.get("widget"))
-                    self.status_cb("✅ Listo")
+                    self.status_cb("✅ Done")
             except Exception as e:
                 if not self.stop_requested:
                     self.status_cb(f"⚠️ Error: {e}")
@@ -217,7 +217,7 @@ class SpeechWorker:
         self.q.put(job)
 
     def stop(self):
-        self.status_cb("⏹ Detenido")
+        self.status_cb("⏹ Stopped")
         with self.lock:
             for p in self.procs:
                 try:
@@ -273,30 +273,30 @@ class TTSApp:
         self._set_slider("pitch", self.cfg.get("pitch", 0))
         self._set_slider("volume", self.cfg.get("volume", 0))
         self.metal_slider.set(self.cfg.get("robot_metal", 70))
-        self.set_status("✅ Listo — elige motor y voz")
+        self.set_status("✅ Ready — pick engine and voice")
         self._announce_virtual_device()
 
     def _announce_virtual_device(self):
-        """Avisa del estado del mic virtual en Windows/macOS al arrancar."""
+        """Warn about the virtual mic status on Windows/macOS at startup."""
         if sys.platform.startswith("linux"):
             return
         found = tts_engine.find_virtual_output()
         if found:
-            self.set_status(f"🎤 Cable virtual: {found[1]}")
+            self.set_status(f"🎤 Virtual cable: {found[1]}")
         else:
             self.set_status(
-                "Sin cable virtual. Instala BlackHole (mac) o VB-CABLE (win)")
+                "No virtual cable. Install BlackHole (mac) or VB-CABLE (win)")
 
     def _reload_voices(self):
-        """Recarga la lista de voces según el motor actual."""
+        """Reload the voice list for the current engine."""
         self.voices = tts_engine.list_voices(self.current_engine)
         if self.current_engine == "robot":
-            # Para robot, asegurar que esté en la lista
+            # For the robot, make sure it is in the list
             labels = [v["label"] for v in self.voices]
             if ROBOT_VOICE not in labels:
                 self.voices.insert(0, {"label": ROBOT_VOICE, "id": ROBOT_VOICE, "gender": "Robot", "engine": "robot"})
         else:
-            # Añadir robot como opción al final para otros motores
+            # Add the robot as a final option for other engines
             self.voices.append({"label": ROBOT_VOICE, "id": ROBOT_VOICE, "gender": "Robot", "engine": "robot"})
 
     # ---------- Estilos ----------
@@ -306,46 +306,46 @@ class TTSApp:
 
     # ---------- UI ----------
     def _build_ui(self):
-        self.root.title("Multivoz")
+        self.root.title("MultiVoice")
         self.root.geometry("760x640")
         self.root.minsize(680, 560)
 
         # ---- Cabecera ----
         self.top = tk.Frame(self.root)
         self.top.pack(fill=tk.X, padx=16, pady=(12, 0))
-        tk.Label(self.top, text="🎙 Multivoz",
+        tk.Label(self.top, text="🎙 MultiVoice",
                  font=("Ubuntu", 15, "bold")).pack(side=tk.LEFT)
-        self.btn_settings = self._btn(self.top, "⚙ Ajustes", self.open_settings)
+        self.btn_settings = self._btn(self.top, "⚙ Settings", self.open_settings)
         self.btn_settings.pack(side=tk.RIGHT, padx=(6, 0))
-        self.btn_theme = self._btn(self.top, "🌓 Tema", self.toggle_theme)
+        self.btn_theme = self._btn(self.top, "🌓 Theme", self.toggle_theme)
         self.btn_theme.pack(side=tk.RIGHT)
 
-        # ---- Tarjeta: voz ----
+        # ---- Card: voice ----
         self.voice_card = tk.Frame(self.root, bd=0, highlightthickness=1,
                                    highlightbackground=self.pal["border"])
         self.voice_card.pack(fill=tk.X, padx=12, pady=(10, 0))
         self.inner = tk.Frame(self.voice_card)
         self.inner.pack(fill=tk.X, padx=14, pady=12)
-        # Motor
-        tk.Label(self.inner, text="Motor", font=("Ubuntu", 10, "bold")).pack(
+        # Engine
+        tk.Label(self.inner, text="Engine", font=("Ubuntu", 10, "bold")).pack(
             side=tk.LEFT, padx=(0, 10))
         self.engine_combo = ttk.Combobox(
             self.inner, state="readonly", width=14,
             values=["edge", "gtts", "robot"])
         self.engine_combo.pack(side=tk.LEFT, padx=(0, 12))
         self.engine_combo.bind("<<ComboboxSelected>>", self._on_engine_changed)
-        # Voz
-        tk.Label(self.inner, text="Voz", font=("Ubuntu", 10, "bold")).pack(
+        # Voice
+        tk.Label(self.inner, text="Voice", font=("Ubuntu", 10, "bold")).pack(
             side=tk.LEFT, padx=(12, 10))
         self.voice_combo = ttk.Combobox(
             self.inner, state="readonly",
             values=[v["label"] for v in self.voices])
         self.voice_combo.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self.voice_combo.bind("<<ComboboxSelected>>", self._on_voice_changed)
-        self.btn_probe = self._btn(self.inner, "👂 Probar", self.probe_voice)
+        self.btn_probe = self._btn(self.inner, "👂 Test", self.probe_voice)
         self.btn_probe.pack(side=tk.LEFT, padx=(10, 0))
 
-        # ---- Tarjeta: ajustes de voz ----
+        # ---- Card: voice settings ----
         self.cfg_frame = tk.Frame(self.root, bd=0, highlightthickness=1,
                                   highlightbackground=self.pal["border"])
         self.cfg_frame.pack(fill=tk.X, padx=12, pady=(8, 0))
@@ -354,11 +354,11 @@ class TTSApp:
 
         self.sliders = {}
         self.slider_labels = {}
-        # (clave, título, mínimo, máximo, columna)
+        # (key, title, minimum, maximum, column)
         sliders = [
-            ("rate", "⏩ Velocidad", -50, 100, 0),
-            ("pitch", "🎚 Tono", -50, 50, 0),
-            ("volume", "🔊 Volumen", -50, 50, 1),
+            ("rate", "⏩ Speed", -50, 100, 0),
+            ("pitch", "🎚 Pitch", -50, 50, 0),
+            ("volume", "🔊 Volume", -50, 50, 1),
         ]
         cols = [tk.Frame(self.cfg_inner) for _ in range(2)]
         for c in cols:
@@ -380,7 +380,7 @@ class TTSApp:
             self.sliders[key] = s
             self.slider_labels[key] = val
 
-        # fila del robot (visible solo con SCP-079)
+        # robot row (visible only with SCP-079)
         self.robot_row = tk.Frame(self.cfg_inner)
         self.robot_row.pack(fill=tk.X, pady=(3, 0))
         head_r = tk.Frame(self.robot_row)
@@ -398,7 +398,7 @@ class TTSApp:
         self.hint = tk.Label(self.cfg_inner, text="", anchor="w")
         self.hint.pack(fill=tk.X, pady=(4, 0))
 
-        # ---- Editor: pestañas ----
+        # ---- Editor: tabs ----
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=12, pady=(10, 0))
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
@@ -407,29 +407,29 @@ class TTSApp:
         self.bottom = tk.Frame(self.root)
         self.bottom.pack(fill=tk.X, padx=12, pady=(8, 4))
 
-        self.btn_add = self._btn(self.bottom, "＋ Nueva", self.add_tab)
+        self.btn_add = self._btn(self.bottom, "＋ New", self.add_tab)
         self.btn_add.pack(side=tk.LEFT, padx=(0, 6))
-        self.btn_del = self._btn(self.bottom, "✕ Eliminar",
+        self.btn_del = self._btn(self.bottom, "✕ Delete",
                                  self.delete_current_tab)
         self.btn_del.pack(side=tk.LEFT)
 
         self.auto_clear_var = tk.BooleanVar(value=self.cfg.get("auto_clear", True))
         self.queue_var = tk.BooleanVar(value=self.cfg.get("queue_enabled", True))
-        cb1 = tk.Checkbutton(self.bottom, text="Auto-limpiar",
+        cb1 = tk.Checkbutton(self.bottom, text="Auto-clear",
                              variable=self.auto_clear_var,
                              command=self._persist_flags)
         cb1.pack(side=tk.LEFT, padx=(14, 2))
-        cb2 = tk.Checkbutton(self.bottom, text="Encolar audios",
+        cb2 = tk.Checkbutton(self.bottom, text="Queue audio",
                              variable=self.queue_var,
                              command=self._persist_flags)
         cb2.pack(side=tk.LEFT, padx=2)
 
-        self.btn_save = self._btn(self.bottom, "💾 Guardar", self.save_audio)
+        self.btn_save = self._btn(self.bottom, "💾 Save", self.save_audio)
         self.btn_save.pack(side=tk.RIGHT, padx=(6, 0))
-        self.btn_stop = self._btn(self.bottom, "⏹ Detener",
+        self.btn_stop = self._btn(self.bottom, "⏹ Stop",
                                   lambda: self.worker.stop())
         self.btn_stop.pack(side=tk.RIGHT, padx=(6, 0))
-        self.btn_speak = self._btn(self.bottom, "🔊 Hablar",
+        self.btn_speak = self._btn(self.bottom, "🔊 Speak",
                                    self.speak_current, accent=True)
         self.btn_speak.pack(side=tk.RIGHT, padx=(6, 0))
 
@@ -455,7 +455,7 @@ class TTSApp:
                   self.bottom):
             w.configure(bg=self.pal["bg"])
             self._paint_container(w)
-        # inner frames de las tarjetas
+        # inner frames of the cards
         for attr in ("inner", "cfg_inner"):
             if hasattr(self, attr):
                 getattr(self, attr).configure(bg=self.pal["bg"])
@@ -499,7 +499,7 @@ class TTSApp:
         save_config(self.cfg)
 
     def _on_engine_changed(self, event=None):
-        """Cambia el motor TTS y recarga las voces."""
+        """Change the TTS engine and reload the voices."""
         new_engine = self.engine_combo.get()
         if new_engine == self.current_engine:
             return
@@ -508,12 +508,12 @@ class TTSApp:
         save_config(self.cfg)
         self._reload_voices()
         self.voice_combo.configure(values=[v["label"] for v in self.voices])
-        # Seleccionar primera voz disponible
+        # Select the first available voice
         if self.voices:
             self.voice_combo.set(self.voices[0]["label"])
         self._on_voice_changed()
 
-    # ---------- Voz ----------
+    # ---------- Voice ----------
     def _on_voice_changed(self, event=None):
         label = self.voice_combo.get()
         is_robot = label == ROBOT_VOICE
@@ -525,20 +525,20 @@ class TTSApp:
                 self._set_slider("rate", -15)
             if self.sliders["pitch"].get() == 0:
                 self._set_slider("pitch", -25)
-            self.hint.configure(text="🤖 Sonido robot: voz robótica profunda. Ajusta Metal para más distorsión.",
+            self.hint.configure(text="🤖 Robot sound: deep robotic voice. Adjust Metal for more distortion.",
                                 fg=self.pal["accent"])
         else:
-            # Detectar motor de la voz seleccionada
+            # Detect the engine of the selected voice
             voice_info = next((v for v in self.voices if v["label"] == label), {})
             engine = voice_info.get("engine", self.current_engine)
             if engine == "edge":
-                self.hint.configure(text="✨ Voces neuronales (requieren internet). Edge TTS - 14 voces español.",
+                self.hint.configure(text="✨ Neural voices (require internet). Edge TTS - 14 Spanish voices.",
                                     fg=self.pal["fg_dim"])
             elif engine == "gtts":
-                self.hint.configure(text="🌐 Google TTS (requiere internet). Múltiples idiomas disponibles.",
+                self.hint.configure(text="🌐 Google TTS (requires internet). Multiple languages available.",
                                     fg=self.pal["fg_dim"])
             else:
-                self.hint.configure(text="✨ Voces disponibles.",
+                self.hint.configure(text="✨ Voices available.",
                                     fg=self.pal["fg_dim"])
         self.cfg["voice"] = label
         save_config(self.cfg)
@@ -577,7 +577,7 @@ class TTSApp:
             opts = {"lang": voice["id"], "slow": False}
             return {"text": text, "engine": "gtts", "opts": opts,
                     "widget": widget, "clear_after": clear_after}
-        # edge por defecto
+        # edge by default
         opts = {"voice": voice["id"], "rate": rate, "pitch": pitch,
                 "volume": volume}
         return {"text": text, "engine": "edge", "opts": opts,
@@ -599,13 +599,13 @@ class TTSApp:
     def speak(self, text_widget):
         text = text_widget.get("1.0", tk.END).strip()
         if not text:
-            self.set_status("⚠️ Escribe algo antes de hablar")
+            self.set_status("⚠️ Type something before speaking")
             return
         clear = self.auto_clear_var.get()
         job = self.build_job(text, widget=text_widget, clear_after=clear)
         job["queue"] = self.queue_var.get()
         self.worker.enqueue(job)
-        # la limpieza la hace el worker via on_clear al terminar
+        # the worker clears the widget via on_clear when it finishes
 
     def _safe_clear(self, widget):
         try:
@@ -620,14 +620,14 @@ class TTSApp:
             return
         text = text_widget.get("1.0", tk.END).strip()
         if not text:
-            self.set_status("⚠️ Nada que guardar")
+            self.set_status("⚠️ Nothing to save")
             return
         voice = self.current_voice()
         ext = "mp3" if voice["id"] != ROBOT_VOICE else "wav"
         path = filedialog.asksaveasfilename(
             defaultextension=f".{ext}",
             filetypes=[(f"Audio ({ext})", f"*.{ext}")],
-            initialfile=f"tts_{self.tab_counter}.{ext}")
+            initialfile=f"multivoice_{self.tab_counter}.{ext}")
         if not path:
             return
 
@@ -637,7 +637,7 @@ class TTSApp:
                 args = SimpleNamespace(**job["opts"])
                 tts_engine.synthesize(text, job["engine"], args, path)
                 self.root.after(0, lambda: self.set_status(
-                    f"✅ Guardado: {os.path.basename(path)}"))
+                    f"✅ Saved: {os.path.basename(path)}"))
             except Exception as exc:
                 msg = str(exc)
 
@@ -647,15 +647,15 @@ class TTSApp:
                 self.root.after(0, show_err)
 
         threading.Thread(target=run, daemon=True).start()
-        self.set_status("💾 Guardando...")
+        self.set_status("💾 Saving...")
 
-    # ---------- Pestañas ----------
+    # ---------- Tabs ----------
     def add_tab(self):
         if len(self.tab_texts) >= self.cfg.get("max_tabs", 5):
-            self.set_status("⚠️ Límite de pestañas alcanzado")
+            self.set_status("⚠️ Max tabs reached")
             return
         self.tab_counter += 1
-        name = f"Voz {self.tab_counter}"
+        name = f"Voice {self.tab_counter}"
         tab = tk.Frame(self.notebook)
         text = tk.Text(tab, height=12, width=50, relief="flat", wrap="word",
                        font=("Arial", 11), undo=True,
@@ -698,7 +698,7 @@ class TTSApp:
         name = self.notebook.tab(current, "text")
         return self.tab_texts.get(name)
 
-    # ---------- Tema ----------
+    # ---------- Theme ----------
     def toggle_theme(self):
         idx = THEME_ORDER.index(self.theme)
         self.theme = THEME_ORDER[(idx + 1) % len(THEME_ORDER)]
@@ -707,9 +707,9 @@ class TTSApp:
         self.apply_theme()
 
     def open_settings(self):
-        """Diálogo de configuración completo."""
+        """Full settings dialog."""
         win = tk.Toplevel(self.root)
-        win.title("⚙ Configuración")
+        win.title("⚙ Settings")
         win.geometry("460x560")
         win.resizable(False, False)
         win.transient(self.root)
@@ -719,12 +719,12 @@ class TTSApp:
         nb = ttk.Notebook(win)
         nb.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # --- pestaña: General ---
+        # --- tab: General ---
         gen = tk.Frame(nb, bg=self.pal["bg"])
         nb.add(gen, text=" General ")
 
-        # Motor TTS
-        tk.Label(gen, text="Motor TTS", font=("Ubuntu", 10, "bold"),
+        # TTS Engine
+        tk.Label(gen, text="TTS Engine", font=("Ubuntu", 10, "bold"),
                  bg=self.pal["bg"], fg=self.pal["fg"]).pack(anchor="w", padx=14, pady=(14, 4))
         frm_eng = tk.Frame(gen, bg=self.pal["bg"])
         frm_eng.pack(fill=tk.X, padx=14)
@@ -734,8 +734,8 @@ values=["edge", "gtts", "robot"])
         cb_eng.pack(fill=tk.X)
         cb_eng.bind("<<ComboboxSelected>>", lambda e: self._on_engine_changed())
 
-        # Tema
-        tk.Label(gen, text="Tema", font=("Ubuntu", 10, "bold"),
+        # Theme
+        tk.Label(gen, text="Theme", font=("Ubuntu", 10, "bold"),
                  bg=self.pal["bg"], fg=self.pal["fg"]).pack(anchor="w", padx=14, pady=(14, 4))
         frm = tk.Frame(gen, bg=self.pal["bg"])
         frm.pack(fill=tk.X, padx=14)
@@ -753,8 +753,8 @@ values=["edge", "gtts", "robot"])
 
         cb.bind("<<ComboboxSelected>>", lambda e: _on_theme_change())
 
-        # Pestañas máximas
-        tk.Label(gen, text="Máx. pestañas", font=("Ubuntu", 10, "bold"),
+        # Max tabs
+        tk.Label(gen, text="Max tabs", font=("Ubuntu", 10, "bold"),
                  bg=self.pal["bg"], fg=self.pal["fg"]).pack(anchor="w", padx=14, pady=(14, 4))
         frm2 = tk.Frame(gen, bg=self.pal["bg"])
         frm2.pack(fill=tk.X, padx=14)
@@ -764,35 +764,35 @@ values=["edge", "gtts", "robot"])
         tk.Label(frm2, textvariable=tabs_var, bg=self.pal["bg"], fg=self.pal["fg"],
                  width=4).pack(side=tk.LEFT, padx=(8, 0))
 
-        # --- pestaña: Audio ---
+        # --- tab: Audio ---
         aud = tk.Frame(nb, bg=self.pal["bg"])
         nb.add(aud, text=" Audio ")
 
-        tk.Label(aud, text="Auto-limpiar al hablar", font=("Ubuntu", 10, "bold"),
+        tk.Label(aud, text="Auto-clear after speaking", font=("Ubuntu", 10, "bold"),
                  bg=self.pal["bg"], fg=self.pal["fg"]).pack(anchor="w", padx=14, pady=(14, 4))
         ac_var = tk.BooleanVar(value=self.cfg.get("auto_clear", True))
-        tk.Checkbutton(aud, text="Activar", variable=ac_var, bg=self.pal["bg"],
+        tk.Checkbutton(aud, text="Enable", variable=ac_var, bg=self.pal["bg"],
                        fg=self.pal["fg"], selectcolor=self.pal["panel"],
                        activebackground=self.pal["bg"],
                        command=lambda: (self.auto_clear_var.set(ac_var.get()),
                                         self.cfg.update({"auto_clear": ac_var.get()}),
                                         save_config(self.cfg))).pack(anchor="w", padx=14)
 
-        tk.Label(aud, text="Encolar audios (no interrumpir)", font=("Ubuntu", 10, "bold"),
+        tk.Label(aud, text="Queue audio (don't interrupt)", font=("Ubuntu", 10, "bold"),
                  bg=self.pal["bg"], fg=self.pal["fg"]).pack(anchor="w", padx=14, pady=(14, 4))
         q_var = tk.BooleanVar(value=self.cfg.get("queue_enabled", True))
-        tk.Checkbutton(aud, text="Activar", variable=q_var, bg=self.pal["bg"],
+        tk.Checkbutton(aud, text="Enable", variable=q_var, bg=self.pal["bg"],
                        fg=self.pal["fg"], selectcolor=self.pal["panel"],
                        activebackground=self.pal["bg"],
                        command=lambda: (self.queue_var.set(q_var.get()),
                                         self.cfg.update({"queue_enabled": q_var.get()}),
                                         save_config(self.cfg))).pack(anchor="w", padx=14)
 
-        # --- pestaña: Voz Robot ---
+        # --- tab: Robot Voice ---
         rob = tk.Frame(nb, bg=self.pal["bg"])
-        nb.add(rob, text=" 🔊 Sonido Robot ")
+        nb.add(rob, text=" 🔊 Robot Sound ")
 
-        tk.Label(rob, text="Configuración del sonido robot", font=("Ubuntu", 10, "bold"),
+        tk.Label(rob, text="Robot sound settings", font=("Ubuntu", 10, "bold"),
                  bg=self.pal["bg"], fg=self.pal["fg"]).pack(anchor="w", padx=14, pady=(14, 4))
 
         def make_slider(parent, label, key, lo, hi, unit="", default=None):
@@ -811,19 +811,19 @@ values=["edge", "gtts", "robot"])
                           ))
             s.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(8, 8))
 
-        make_slider(rob, "Velocidad (wpm)", "robot_speed", 40, 450, default=135)
-        make_slider(rob, "Pitch espeak", "robot_pitch", 1, 99, default=30)
-        make_slider(rob, "Metal (distorsión %)", "robot_metal", 0, 100, "%", default=70)
-        make_slider(rob, "Volumen (dB)", "robot_volume", -50, 50, "dB")
+        make_slider(rob, "Speed (wpm)", "robot_speed", 40, 450, default=135)
+        make_slider(rob, "espeak pitch", "robot_pitch", 1, 99, default=30)
+        make_slider(rob, "Metal (distortion %)", "robot_metal", 0, 100, "%", default=70)
+        make_slider(rob, "Volume (dB)", "robot_volume", -50, 50, "dB")
 
-        # --- pestaña: Atajos ---
+        # --- tab: Shortcuts ---
         kbd = tk.Frame(nb, bg=self.pal["bg"])
-        nb.add(kbd, text=" ⌨ Atajos ")
+        nb.add(kbd, text=" ⌨ Shortcuts ")
         for k, v in [
-            ("Ctrl+Enter", "Hablar pestaña actual"),
-            ("Ctrl+T", "Nueva pestaña"),
-            ("Ctrl+W", "Cerrar pestaña"),
-            ("F5", "Probar voz seleccionada"),
+            ("Ctrl+Enter", "Speak current tab"),
+            ("Ctrl+T", "New tab"),
+            ("Ctrl+W", "Close tab"),
+            ("F5", "Test selected voice"),
         ]:
             row = tk.Frame(kbd, bg=self.pal["bg"])
             row.pack(fill=tk.X, padx=14, pady=4)
@@ -831,10 +831,10 @@ values=["edge", "gtts", "robot"])
                      bg=self.pal["bg"], fg=self.pal["accent"], width=12).pack(side=tk.LEFT)
             tk.Label(row, text=v, bg=self.pal["bg"], fg=self.pal["fg_dim"]).pack(side=tk.LEFT)
 
-        # Botón cerrar
+        # Cerrar button
         bf = tk.Frame(win, bg=self.pal["bg"])
         bf.pack(fill=tk.X, padx=10, pady=10)
-        self._btn(bf, "Cerrar", win.destroy, accent=False).pack(side=tk.RIGHT)
+        self._btn(bf, "Close", win.destroy, accent=False).pack(side=tk.RIGHT)
 
     def _paint_container(self, parent):
         for child in parent.winfo_children():
@@ -906,7 +906,7 @@ values=["edge", "gtts", "robot"])
                     if self.voice_combo.get() == ROBOT_VOICE
                     else self.pal["fg_dim"]))
 
-    # ---------- Estado / atajos ----------
+    # ---------- Status / shortcuts ----------
     def set_status(self, msg):
         self.status.configure(text=msg)
 

@@ -1,0 +1,10 @@
+[Desktop Entry]
+# Launcher template. Do NOT use this file directly:
+# run ./install.sh to generate the launcher with the paths of your copy.
+Name=MultiVoice
+Comment=Speak through a virtual microphone
+Exec=bash -c "REPO_PATH/start.sh"
+Icon=REPO_PATH/assets/icon.png
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# Motor TTS: edge-tts, gTTS, robot (espeak-ng)
-# Uso:
-#   python3 tts_engine.py "texto" [--engine edge|gtts|robot] [--voice ID]
+# TTS engine: edge-tts, gTTS, robot (espeak-ng)
+# Usage:
+#   python3 tts_engine.py "text" [--engine edge|gtts|robot] [--voice ID]
 #       [--rate N] [--pitch N] [--volume N] [--lang CODE]
 #       [--robot-speed N] [--robot-pitch N] [--robot-metal N]
 #       [--save FILE] [--no-play]
@@ -16,24 +16,24 @@ import threading
 import edge_tts
 from gtts import gTTS
 
-ROBOT_VOICE = "🤖 Sonido Robot"
+ROBOT_VOICE = "🤖 Robot Sound"
 SAMPLE_RATE = 48000
 
-# Voces en español conocidas de edge-tts (nombre amigable, id, género)
-# Subconjunto reducido: países principales
+# Known Spanish voices from edge-tts (friendly name, id, gender)
+# Reduced subset: main countries
 SPANISH_VOICES = [
-    ("Alvaro — España (M)", "es-ES-AlvaroNeural", "Male"),
-    ("Elvira — España (F)", "es-ES-ElviraNeural", "Female"),
+    ("Alvaro — Spain (M)", "es-ES-AlvaroNeural", "Male"),
+    ("Elvira — Spain (F)", "es-ES-ElviraNeural", "Female"),
     ("Elena — Argentina (F)", "es-AR-ElenaNeural", "Female"),
     ("Tomas — Argentina (M)", "es-AR-TomasNeural", "Male"),
     ("Catalina — Chile (F)", "es-CL-CatalinaNeural", "Female"),
     ("Lorenzo — Chile (M)", "es-CL-LorenzoNeural", "Male"),
     ("Gonzalo — Colombia (M)", "es-CO-GonzaloNeural", "Male"),
     ("Salome — Colombia (F)", "es-CO-SalomeNeural", "Female"),
-    ("Dalia — México (F)", "es-MX-DaliaNeural", "Female"),
-    ("Jorge — México (M)", "es-MX-JorgeNeural", "Male"),
-    ("Alex — Perú (M)", "es-PE-AlexNeural", "Male"),
-    ("Camila — Perú (F)", "es-PE-CamilaNeural", "Female"),
+    ("Dalia — Mexico (F)", "es-MX-DaliaNeural", "Female"),
+    ("Jorge — Mexico (M)", "es-MX-JorgeNeural", "Male"),
+    ("Alex — Peru (M)", "es-PE-AlexNeural", "Male"),
+    ("Camila — Peru (F)", "es-PE-CamilaNeural", "Female"),
     ("Paola — Venezuela (F)", "es-VE-PaolaNeural", "Female"),
     ("Sebastian — Venezuela (M)", "es-VE-SebastianNeural", "Male"),
 ]
@@ -53,7 +53,7 @@ def _resource_dir():
 
 
 def _find_bin(name):
-    """Busca un ejecutable incluido en el paquete (bin/) y si no en el PATH."""
+    """Find an executable bundled with the app (bin/) or fall back to PATH."""
     exe = name + ".exe" if sys.platform.startswith("win") else name
     base = _resource_dir()
     for cand in (os.path.join(base, "bin", exe), os.path.join(base, exe)):
@@ -67,7 +67,7 @@ def _find_bin(name):
 
 
 def ffmpeg_bin():
-    """Ruta a ffmpeg: incluido en el paquete, imageio-ffmpeg o el sistema."""
+    """Path to ffmpeg: bundled with the app, imageio-ffmpeg or the system."""
     path = _find_bin("ffmpeg")
     if path != "ffmpeg":
         return path
@@ -79,12 +79,12 @@ def ffmpeg_bin():
 
 
 def espeak_bin():
-    """Ruta a espeak-ng: incluido en el paquete o el sistema."""
+    """Path to espeak-ng: bundled with the app or the system."""
     return _find_bin("espeak-ng")
 
 
 def _espeak_env():
-    """Prepara el entorno si el paquete incluye espeak-ng y sus datos."""
+    """Prepare the environment if the app bundles espeak-ng and its data."""
     base = _resource_dir()
     bin_dir = os.path.join(base, "bin")
     data_parent = None
@@ -108,18 +108,18 @@ def _pipe_to_devnull(r):
 
 
 def list_voices(engine="edge"):
-    """Devuelve lista de voces disponibles para el motor especificado."""
+    """Return the list of available voices for the given engine."""
     if engine == "edge":
         return [{"label": name, "id": vid, "gender": g, "engine": "edge"}
                 for name, vid, g in SPANISH_VOICES]
     elif engine == "gtts":
-        # gTTS usa códigos de idioma, no voces específicas
+        # gTTS uses language codes, not specific voices
         return [
-            {"label": "🌐 Google TTS — Español (es)", "id": "es", "gender": "—", "engine": "gtts"},
-            {"label": "🌐 Google TTS — Español México (es-mx)", "id": "es-mx", "gender": "—", "engine": "gtts"},
-            {"label": "🌐 Google TTS — Español España (es-es)", "id": "es-es", "gender": "—", "engine": "gtts"},
-            {"label": "🌐 Google TTS — Inglés US (en)", "id": "en", "gender": "—", "engine": "gtts"},
-            {"label": "🌐 Google TTS — Inglés UK (en-uk)", "id": "en-uk", "gender": "—", "engine": "gtts"},
+            {"label": "🌐 Google TTS — Spanish (es)", "id": "es", "gender": "—", "engine": "gtts"},
+            {"label": "🌐 Google TTS — Spanish Mexico (es-mx)", "id": "es-mx", "gender": "—", "engine": "gtts"},
+            {"label": "🌐 Google TTS — Spanish Spain (es-es)", "id": "es-es", "gender": "—", "engine": "gtts"},
+            {"label": "🌐 Google TTS — English US (en)", "id": "en", "gender": "—", "engine": "gtts"},
+            {"label": "🌐 Google TTS — English UK (en-uk)", "id": "en-uk", "gender": "—", "engine": "gtts"},
         ]
     elif engine == "robot":
         return [{"label": ROBOT_VOICE, "id": ROBOT_VOICE, "gender": "Robot", "engine": "robot"}]
@@ -127,11 +127,11 @@ def list_voices(engine="edge"):
 
 
 def edge_synth(text, voice, rate, pitch, volume, out_path):
-    """Sintetiza con edge-tts. Devuelve la ruta del WAV final."""
+    """Synthesize with edge-tts. Returns the path to the final WAV."""
     ext = os.path.splitext(out_path)[1].lower()
     save_mp3 = ext == ".mp3"
     if not save_mp3:
-        # trabajo en temporal y convierto a la ruta pedida
+        # work in a temp file and convert to the requested path
         tmp_mp3 = out_path + ".mp3"
     else:
         tmp_mp3 = out_path
@@ -149,7 +149,7 @@ def edge_synth(text, voice, rate, pitch, volume, out_path):
     asyncio.run(_gen())
 
     if save_mp3:
-        # el usuario pidió MP3: queda tal cual
+        # the user asked for MP3: leave it as is
         if os.path.exists(out_path + ".raw.wav"):
             os.remove(out_path + ".raw.wav")
         return out_path
@@ -163,7 +163,7 @@ def edge_synth(text, voice, rate, pitch, volume, out_path):
 
 
 def gtts_synth(text, lang, slow, out_path):
-    """Sintetiza con gTTS (Google TTS). Devuelve la ruta del WAV final."""
+    """Synthesize with gTTS (Google TTS). Returns the path to the final WAV."""
     ext = os.path.splitext(out_path)[1].lower()
     save_mp3 = ext == ".mp3"
     if not save_mp3:
@@ -188,7 +188,7 @@ def gtts_synth(text, lang, slow, out_path):
 
 
 def robot_synth(text, speed, pitch, volume, metal, out_path):
-    """Sintetiza con espeak-ng + efectos ffmpeg estilo SCP-079."""
+    """Synthesize with espeak-ng + ffmpeg effects in an SCP-079 style."""
     ext = os.path.splitext(out_path)[1].lower()
     final = out_path if ext == ".wav" else out_path + ".wav"
     raw = final + ".raw.wav"
@@ -229,7 +229,7 @@ def get_default_sink():
     return (r.stdout or "").strip() if r.returncode == 0 else ""
 
 
-# Nombres de cables virtuales por sistema (subcadena, sin distinguir mayúsculas)
+# Virtual cable names per system (substring, case-insensitive)
 VIRTUAL_DEVICE_HINTS = {
     "win32": ["cable input", "vb-audio", "voicemeeter"],
     "darwin": ["blackhole", "loopback", "soundflower"],
@@ -237,10 +237,10 @@ VIRTUAL_DEVICE_HINTS = {
 
 
 def find_virtual_output():
-    """Busca un dispositivo de salida virtual (VB-CABLE, BlackHole...).
+    """Find a virtual output device (VB-CABLE, BlackHole...).
 
-    Devuelve (indice, nombre) o None. Solo Windows/macOS; en Linux el mic
-    virtual se gestiona con pactl/PipeWire.
+    Returns (index, name) or None. Windows/macOS only; on Linux the virtual
+    mic is managed with pactl/PipeWire.
     """
     if sys.platform.startswith("linux"):
         return None
@@ -264,7 +264,7 @@ def find_virtual_output():
 
 
 class _SdPlayer:
-    """Reproductor con sounddevice con la misma interfaz que subprocess.Popen."""
+    """sounddevice player with the same interface as subprocess.Popen."""
 
     def __init__(self, wav_path, device):
         self._stop = threading.Event()
@@ -286,7 +286,7 @@ class _SdPlayer:
             dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width, "int16")
             with sd.RawOutputStream(samplerate=rate, channels=channels,
                                     dtype=dtype, device=self.device) as stream:
-                chunk = rate * channels * width  # ~1 segundo
+                chunk = rate * channels * width  # ~1 second
                 for i in range(0, len(data), chunk):
                     if self._stop.is_set():
                         break
@@ -305,11 +305,11 @@ class _SdPlayer:
 
 
 def play_wav(wav_path):
-    """Reproduce el audio.
+    """Play the audio.
 
-    Linux: al micrófono virtual y al altavoz, con pw-play.
-    Windows/macOS: al cable virtual (si está instalado) y al altavoz, con
-    sounddevice.
+    Linux: to the virtual microphone and to the speakers, with pw-play.
+    Windows/macOS: to the virtual cable (if installed) and to the speakers,
+    with sounddevice.
     """
     if sys.platform.startswith("linux"):
         procs = []
@@ -327,7 +327,7 @@ def play_wav(wav_path):
     virtual = find_virtual_output()
     if virtual is not None:
         players.append(_SdPlayer(wav_path, virtual[0]))
-    # Al altavoz predeterminado (para oírte) además del cable virtual.
+    # To the default speakers (so you hear yourself) besides the virtual cable.
     players.append(_SdPlayer(wav_path, None))
     return players
 
@@ -343,24 +343,24 @@ def synthesize(text, engine, args, out_path):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Motor de voz Multivoz")
-    ap.add_argument("text", help="Texto a decir")
+    ap = argparse.ArgumentParser(description="MultiVoice speech engine")
+    ap.add_argument("text", help="Text to speak")
     ap.add_argument("--engine", choices=["edge", "gtts", "robot"], default="edge")
     ap.add_argument("--voice", default="es-MX-JorgeNeural")
-    ap.add_argument("--lang", default="es", help="Código de idioma para gTTS (es, en, etc.)")
-    ap.add_argument("--slow", action="store_true", help="Voz lenta para gTTS")
+    ap.add_argument("--lang", default="es", help="Language code for gTTS (es, en, etc.)")
+    ap.add_argument("--slow", action="store_true", help="Slow speech for gTTS")
     ap.add_argument("--rate", type=int, default=0)
     ap.add_argument("--pitch", type=int, default=0)
     ap.add_argument("--volume", type=int, default=0)
     ap.add_argument("--robot-speed", type=int, default=110)
     ap.add_argument("--robot-pitch", type=int, default=15)
     ap.add_argument("--robot-metal", type=float, default=0.7)
-    ap.add_argument("--save", default=None, help="Guardar a archivo y salir")
-    ap.add_argument("--no-play", action="store_true", help="No reproducir")
+    ap.add_argument("--save", default=None, help="Save to a file and exit")
+    ap.add_argument("--no-play", action="store_true", help="Do not play")
     args = ap.parse_args()
 
     out = args.save or os.path.join(os.environ.get("TMPDIR", "/tmp"),
-                                    "tts_speech.wav")
+                                    "multivoice_speech.wav")
     wav = synthesize(args.text, args.engine, args, out)
     if not args.no_play and not args.save:
         procs = play_wav(wav)

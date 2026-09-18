@@ -1,41 +1,41 @@
 <div align="center">
 
-# Multivoz
+# MultiVoice
 
-**Convierte texto en voz y habla por un micrófono virtual en Discord y otras apps**
+**Turn text into speech and speak through a virtual microphone in Discord and other apps**
 
-Escríbelo en la ventana, pulsa Hablar y tu audiencia te oye con la voz elegida.
+Type in the window, press **Speak** and your audience hears you with the voice you chose.
 
 </div>
 
-## Instalación
+## Installation
 
-### Opción 1: binario ya compilado (Windows, macOS y Linux)
+### Option 1: pre-built binary (Windows, macOS and Linux)
 
-Descarga el archivo de tu sistema desde [Releases](https://github.com/BenReynor/tts-multitud/releases) (la última versión: `v1.1.0`), descomprímelo y ábrelo. Hay un `.zip` por sistema:
+Download the file for your system from [Releases](https://github.com/BenReynor/tts-multitud/releases) (latest version: `v1.2.0`), unzip it and open it. There is one `.zip` per system:
 
-- `tts-multitud-linux-x86_64.zip` → Linux en procesador Intel/AMD (la mayoría)
-- `tts-multitud-linux-arm64.zip` → Linux en ARM (Raspberry Pi, muchos ARM)
-- `tts-multitud-windows-x64.zip` → Windows
-- `tts-multitud-macos-arm64.zip` → macOS en Apple Silicon (M1/M2/M3/M4)
-- `tts-multitud-macos-intel.zip` → macOS en procesador Intel
+- `multivoice-linux-x86_64.zip` → Linux on Intel/AMD processors (most common)
+- `multivoice-linux-arm64.zip` → Linux on ARM (Raspberry Pi, many ARM boards)
+- `multivoice-windows-x64.zip` → Windows
+- `multivoice-macos-arm64.zip` → macOS on Apple Silicon (M1/M2/M3/M4)
+- `multivoice-macos-intel.zip` → macOS on Intel processors
 
-Si no sabes cuál es tu macOS, *Apple  →  Acerca de este Mac*; si no pone "Apple", es Intel.
+If you don't know your macOS, check *Apple  →  About This Mac*; if it doesn't say "Apple", it's Intel.
 
-El `.zip` se descarga en la carpeta **Descargas** del navegador y, al descomprimirlo, se crea la carpeta `tts-multitud-<SO>` donde elijas. No se instala nada ni se crean accesos directos: el ejecutable corre desde donde lo descomprimas y lo puedes mover a donde quieras.
+The `.zip` downloads to your browser's **Downloads** folder and, when unzipped, creates the `multivoice-<OS>` folder wherever you choose. Nothing is installed and no shortcuts are created: the executable runs from wherever you unzip it and you can move it anywhere.
 
-- **Linux:** dale permisos y ejecútalo. Solo necesita `pactl`/`pw-play` (PipeWire) para crear el micrófono virtual; `ffmpeg` y `espeak-ng` ya van incluidos.
+- **Linux:** make it executable and run it. It only needs `pactl`/`pw-play` (PipeWire) to create the virtual microphone; `ffmpeg` and `espeak-ng` are already bundled.
   ```bash
-  chmod +x tts-multitud && ./tts-multitud
+  chmod +x multivoice && ./multivoice
   ```
-- **Windows:** ejecútalo; si sale SmartScreen, *Más información → Ejecutar de todas formas*.
-- **macOS:** ábrelo; si Gatekeeper lo bloquea, clic derecho → *Abrir*, o `xattr -dr com.apple.quarantine tts-multitud.app`.
+- **Windows:** run it; if SmartScreen appears, *More info → Run anyway*.
+- **macOS:** open it; if Gatekeeper blocks it, right-click → *Open*, or `xattr -dr com.apple.quarantine multivoice.app`.
 
-El binario incluye Python, las librerías de voz, `ffmpeg` y `espeak-ng`. No incluye el cable de audio virtual de Windows/macOS, que debe instalarse aparte (ver abajo).
+The binary includes Python, the speech libraries, `ffmpeg` and `espeak-ng`. It does not include the virtual audio cable for Windows/macOS, which must be installed separately (see below).
 
-### Opción 2: desde el código
+### Option 2: from source
 
-Requiere Python 3.8+ y los paquetes del sistema `ffmpeg`, `espeak-ng` y `python3-tk`.
+Requires Python 3.8+ and the system packages `ffmpeg`, `espeak-ng` and `python3-tk`.
 
 ```bash
 git clone https://github.com/BenReynor/tts-multitud.git
@@ -43,80 +43,80 @@ cd tts-multitud
 python3 -m pip install -r requirements.txt
 ```
 
-Para crear el acceso directo (con el icono de la app) en el menú de aplicaciones y en el escritorio:
+To create the launcher (with the app icon) in the applications menu and on the desktop:
 
 ```bash
-./instalar.sh
+./install.sh
 ```
 
-En Debian/Ubuntu, para las dependencias del sistema:
+On Debian/Ubuntu, for the system dependencies:
 
 ```bash
 sudo apt install ffmpeg espeak-ng python3-tk
 ```
 
-## Inicio rápido
+## Quick start
 
-- **Binario descargado:** abre `tts-multitud` (Linux/macOS) o `tts-multitud.exe` (Windows).
-- **Desde el código:**
+- **Downloaded binary:** open `multivoice` (Linux/macOS) or `multivoice.exe` (Windows).
+- **From source:**
 
 ```bash
-./iniciar.sh
+./start.sh
 ```
 
-En Linux la app crea el micrófono virtual `🎤` al abrirse y lo elimina al cerrarla. En la app donde quieras hablar, selecciónalo como dispositivo de entrada:
+On Linux the app creates the `🎤` virtual microphone when it opens and removes it when it closes. In the app where you want to speak, select it as the input device:
 
-- Discord: Ajustes → Voz y vídeo → Dispositivo de entrada → `🎤`
-- Cualquier otra aplicación que permita elegir micrófono funciona igual.
+- Discord: Settings → Voice & Video → Input device → `🎤`
+- Any other app that lets you choose a microphone works the same way.
 
-Escribe un texto, pulsa **🔊 Hablar** y la voz se escucha en tu auricular y a través del mic virtual.
+Type some text, press **🔊 Speak** and the voice is heard in your headphones and through the virtual mic.
 
-## Micrófono virtual en Windows y macOS
+## Virtual microphone on Windows and macOS
 
-Ahí la app no puede crear el micrófono sola: necesita un cable de audio virtual del sistema. La app lo detecta y reproduce en él automáticamente; solo tienes que seleccionar la entrada en Discord.
+There the app cannot create the microphone on its own: it needs a virtual audio cable from the system. The app detects it and plays through it automatically; you only have to select the input in Discord.
 
-1. **Instala el cable (una vez):**
+1. **Install the cable (once):**
    - **macOS:** [BlackHole](https://existential.audio/blackhole/) (`brew install --cask blackhole-2ch`).
-   - **Windows:** [VB-CABLE](https://vb-audio.com/Cable/) (instalador, requiere permisos de administrador).
-2. **Elige la entrada en Discord:** Ajustes → Voz y vídeo → Dispositivo de entrada → `BlackHole 2ch` (macOS) o `CABLE Output` (Windows).
+   - **Windows:** [VB-CABLE](https://vb-audio.com/Cable/) (installer, requires administrator permissions).
+2. **Choose the input in Discord:** Settings → Voice & Video → Input device → `BlackHole 2ch` (macOS) or `CABLE Output` (Windows).
 
-### Escucharte a ti mismo
+### Hear yourself
 
-El cable virtual manda el audio a Discord, pero no a tus altavoces; para oírte necesitas duplicar la salida:
+The virtual cable sends audio to Discord but not to your speakers; to hear yourself you need to duplicate the output:
 
-- **macOS:** en *Audio MIDI Setup* crea un **dispositivo de salida múltiple** con tus altavoces + BlackHole y selecciónalo como salida del sistema.
-- **Windows:** en *Sonido → Grabación → CABLE Output → Propiedades → Escuchar* marca **Escuchar este dispositivo** y elige tus altavoces.
+- **macOS:** in *Audio MIDI Setup* create a **multi-output device** with your speakers + BlackHole and select it as the system output.
+- **Windows:** in *Sound → Recording → CABLE Output → Properties → Listen* check **Listen to this device** and choose your speakers.
 
-### Si algo no suena
+### If something doesn't sound right
 
-- Deja la app abierta; en Windows/macOS solo reproduce mientras se ejecuta.
-- En Windows, si en Discord se oye muy bajo, prueba a `Discord → Ajustes → Voz y vídeo → Desactivar el procesamiento de audio` y ajusta el volumen de entrada.
-- Si no detecta el cable, la app reproduce por el altavoz y lo avisa al abrirse.
+- Leave the app open; on Windows/macOS it only plays while running.
+- On Windows, if Discord sounds too low, try `Discord → Settings → Voice & Video → Disable audio processing` and adjust the input volume.
+- If it doesn't detect the cable, the app plays through the speakers and warns you when it opens.
 
-> Verificado en Linux; el ruteo a BlackHole/VB-CABLE está probado en la integración automática, pero no en hardware real de Windows/macOS.
+> Verified on Linux; routing to BlackHole/VB-CABLE is tested in the automated integration, but not on real Windows/macOS hardware.
 
-## Qué puedes hacer
+## What you can do
 
-- **Tres motores TTS:** voces neuronales de Microsoft Edge (14 voces en español, internet), Google TTS (gTTS, internet) y sonido robot local (espeak-ng, sin internet).
-- **Sonido robot:** simula la voz robótica del SCP-079, con control de metal (distorsión), velocidad, tono y volumen.
-- **Múltiples pestañas:** prepara varios textos y reprodúcelos en cola, con auto-limpieza opcional.
-- **Guardar audio:** exporta la voz a MP3 o WAV desde el botón Guardar.
+- **Three TTS engines:** Microsoft Edge neural voices (14 Spanish voices, online), Google TTS (gTTS, online) and the local robot sound (espeak-ng, offline).
+- **Robot sound:** simulates the robotic voice of SCP-079, with metal (distortion), speed, pitch and volume controls.
+- **Multiple tabs:** prepare several texts and play them in a queue, with optional auto-clear.
+- **Save audio:** export the voice to MP3 or WAV from the Save button.
 
-## Atajos de teclado
+## Keyboard shortcuts
 
-| Atajo | Acción |
-|-------|--------|
-| Ctrl+Enter | Hablar la pestaña actual |
-| Ctrl+T | Nueva pestaña |
-| Ctrl+W | Cerrar pestaña |
-| F5 | Probar la voz seleccionada |
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+Enter | Speak the current tab |
+| Ctrl+T | New tab |
+| Ctrl+W | Close tab |
+| F5 | Test the selected voice |
 
-## Notas
+## Notes
 
-- El mic virtual `🎤` solo existe en Linux y mientras la app está abierta; si quieres elegirlo en Discord, ten la app abierta.
-- En Windows y macOS la app usa el cable virtual del sistema (BlackHole o VB-CABLE) si lo tienes instalado; si no, reproduce por el altavoz.
-- Edge TTS y Google TTS necesitan internet. El robot funciona sin conexión y usa `espeak-ng`; en los binarios ya va incluido (desde el código necesitas tenerlo instalado).
+- The `🎤` virtual mic only exists on Linux and while the app is open; if you want to choose it in Discord, keep the app open.
+- On Windows and macOS the app uses the system virtual cable (BlackHole or VB-CABLE) if installed; otherwise it plays through the speakers.
+- Edge TTS and Google TTS need internet. The robot works offline and uses `espeak-ng`; it is bundled in the binaries (from source you need to have it installed).
 
-## Licencia
+## License
 
-Uso personal. Sin licencia pública.
+Personal use. No public license.
