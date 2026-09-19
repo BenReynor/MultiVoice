@@ -8,7 +8,9 @@ import queue
 import subprocess
 import sys
 import threading
+import time
 import tkinter as tk
+from datetime import datetime
 from tkinter import ttk, filedialog
 from types import SimpleNamespace
 
@@ -74,6 +76,8 @@ DEFAULT_CONFIG = {
     "auto_clear": True,
     "queue_enabled": True,
     "max_tabs": 5,
+    "auto_save": False,
+    "library_path": os.path.join(os.path.expanduser("~"), "MultiVoice_Audio"),
 }
 
 THEME_ORDER = ["dark", "light", "hacker", "dracula", "gruvbox"]
@@ -143,8 +147,8 @@ def teardown_virtual_mic(ids):
 class SpeechWorker:
     """Synthesis queue + playback with the ability to stop."""
 
-    def __init__(self, status_cb, on_clear=None):
-        # status_cb and on_clear must be scheduled via root.after
+    def __init__(self, status_cb, on_clear=None, on_save=None):
+        # status_cb, on_clear, on_save must be scheduled via root.after
         self.q = queue.Queue()
         self.lock = threading.Lock()
         self.procs = []
@@ -153,6 +157,7 @@ class SpeechWorker:
         self.busy = False
         self.status_cb = status_cb
         self.on_clear = on_clear
+        self.on_save = on_save
         self.cancel_current = threading.Event()
         threading.Thread(target=self._run, daemon=True).start()
 
@@ -183,6 +188,8 @@ class SpeechWorker:
                 if not self.stop_requested:
                     if job.get("clear_after") and self.on_clear:
                         self.on_clear(job.get("widget"))
+                    if job.get("clear_after") and self.on_save:
+                        self.on_save(job.get("widget"))
                     self.status_cb("✅ Done")
             except Exception as e:
                 if not self.stop_requested:
@@ -255,12 +262,15 @@ class TTSApp:
 
         self.worker = SpeechWorker(
             lambda msg: self.root.after(0, self.set_status, msg),
-            on_clear=lambda w: self.root.after(0, self._safe_clear, w))
+            on_clear=lambda w: self.root.after(0, self._safe_clear, w),
+            on_save=lambda w: self.root.after(0, self.maybe_auto_save, w))
 
         self._build_style()
         self._build_ui()
         self.apply_theme()
         self.add_tab()
+        self._build_library_tab()
+        self._cleanup_library()
 
         self.bind_shortcuts()
         labels = [v["label"] for v in self.voices]
@@ -415,6 +425,7 @@ class TTSApp:
 
         self.auto_clear_var = tk.BooleanVar(value=self.cfg.get("auto_clear", True))
         self.queue_var = tk.BooleanVar(value=self.cfg.get("queue_enabled", True))
+        self.auto_save_var = tk.BooleanVar(value=self.cfg.get("auto_save", False))
         cb1 = tk.Checkbutton(self.bottom, text="Auto-clear",
                              variable=self.auto_clear_var,
                              command=self._persist_flags)
@@ -423,6 +434,10 @@ class TTSApp:
                              variable=self.queue_var,
                              command=self._persist_flags)
         cb2.pack(side=tk.LEFT, padx=2)
+        cb3 = tk.Checkbutton(self.bottom, text="Auto-save",
+                             variable=self.auto_save_var,
+                             command=self._persist_flags)
+        cb3.pack(side=tk.LEFT, padx=2)
 
         self.btn_save = self._btn(self.bottom, "💾 Save", self.save_audio)
         self.btn_save.pack(side=tk.RIGHT, padx=(6, 0))
@@ -496,6 +511,7 @@ class TTSApp:
     def _persist_flags(self):
         self.cfg["auto_clear"] = self.auto_clear_var.get()
         self.cfg["queue_enabled"] = self.queue_var.get()
+        self.cfg["auto_save"] = self.auto_save_var.get()
         save_config(self.cfg)
 
     def _on_engine_changed(self, event=None):
@@ -614,40 +630,66 @@ class TTSApp:
         except tk.TclError:
             pass
 
-    def save_audio(self):
+    def save_audio(self, auto=False):
         text_widget = self.get_current_text()
         if not text_widget:
             return
         text = text_widget.get("1.0", tk.END).strip()
         if not text:
-            self.set_status("⚠️ Nothing to save")
+            if not auto:
+                self.set_status("⚠️ Nothing to save")
             return
         voice = self.current_voice()
         ext = "mp3" if voice["id"] != ROBOT_VOICE else "wav"
-        path = filedialog.asksaveasfilename(
-            defaultextension=f".{ext}",
-            filetypes=[(f"Audio ({ext})", f"*.{ext}")],
-            initialfile=f"multivoice_{self.tab_counter}.{ext}")
-        if not path:
-            return
+
+        if auto:
+            # Auto-save to library folder with timestamp
+            lib_dir = self.cfg.get("library_path", DEFAULT_CONFIG["library_path"])
+            os.makedirs(lib_dir, exist_ok=True)
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            fname = f"voz_{ts}.{ext}"
+            path = os.path.join(lib_dir, fname)
+        else:
+            path = filedialog.asksaveasfilename(
+                defaultextension=f".{ext}",
+                filetypes=[(f"Audio ({ext})", f"*.{ext}")],
+                initialfile=f"multivoice_{self.tab_counter}.{ext}")
+            if not path:
+                return
 
         def run():
             try:
                 job = self.build_job(text)
                 args = SimpleNamespace(**job["opts"])
                 tts_engine.synthesize(text, job["engine"], args, path)
+                # Save metadata sidecar
+                meta_path = path + ".json"
+                meta = {
+                    "text": text,
+                    "engine": job["engine"],
+                    "voice": voice["label"],
+                    "voice_id": voice["id"],
+                    "opts": job["opts"],
+                    "created": datetime.now().isoformat(),
+                }
+                with open(meta_path, "w", encoding="utf-8") as f:
+                    json.dump(meta, f, ensure_ascii=False, indent=2)
                 self.root.after(0, lambda: self.set_status(
                     f"✅ Saved: {os.path.basename(path)}"))
             except Exception as exc:
                 msg = str(exc)
-
                 def show_err():
                     self.set_status(f"⚠️ Error: {msg}")
-
                 self.root.after(0, show_err)
 
         threading.Thread(target=run, daemon=True).start()
-        self.set_status("💾 Saving...")
+        if not auto:
+            self.set_status("💾 Saving...")
+
+    # Auto-save trigger (called after speak finishes)
+    def maybe_auto_save(self, text_widget):
+        if self.cfg.get("auto_save", False):
+            self.save_audio(auto=True)
 
     # ---------- Tabs ----------
     def add_tab(self):
@@ -697,6 +739,182 @@ class TTSApp:
             return None
         name = self.notebook.tab(current, "text")
         return self.tab_texts.get(name)
+
+    # ---------- Library ----------
+    def _build_library_tab(self):
+        """Create the library tab with file list and controls."""
+        self.lib_tab = tk.Frame(self.notebook)
+        self.notebook.add(self.lib_tab, text="📁 Biblioteca")
+
+        # Toolbar
+        toolbar = tk.Frame(self.lib_tab, bg=self.pal["bg"])
+        toolbar.pack(fill=tk.X, padx=8, pady=6)
+
+        self._btn(toolbar, "🔄 Refresh", self._refresh_library).pack(side=tk.LEFT, padx=(0, 6))
+        self._btn(toolbar, "🗑️ Delete Selected", self._delete_library_selected).pack(side=tk.LEFT, padx=(0, 6))
+        self._btn(toolbar, "📂 Open Folder", self._open_library_folder).pack(side=tk.LEFT)
+        self.lib_status = tk.Label(toolbar, text="", anchor="w", bg=self.pal["bg"], fg=self.pal["fg_dim"])
+        self.lib_status.pack(side=tk.RIGHT, padx=8)
+
+        # File list with columns
+        columns = ("name", "date", "engine", "voice", "size")
+        self.lib_tree = ttk.Treeview(self.lib_tab, columns=columns, show="headings", selectmode="extended")
+        self.lib_tree.heading("name", text="Archivo")
+        self.lib_tree.heading("date", text="Fecha")
+        self.lib_tree.heading("engine", text="Motor")
+        self.lib_tree.heading("voice", text="Voz")
+        self.lib_tree.heading("size", text="Tamaño")
+        self.lib_tree.column("name", width=220, anchor="w")
+        self.lib_tree.column("date", width=140, anchor="center")
+        self.lib_tree.column("engine", width=80, anchor="center")
+        self.lib_tree.column("voice", width=160, anchor="w")
+        self.lib_tree.column("size", width=80, anchor="e")
+        self.lib_tree.pack(fill=tk.BOTH, expand=True, padx=8, pady=(0, 8))
+
+        # Scrollbar
+        vsb = ttk.Scrollbar(self.lib_tab, orient="vertical", command=self.lib_tree.yview)
+        self.lib_tree.configure(yscrollcommand=vsb.set)
+        vsb.pack(side=tk.RIGHT, fill=tk.Y, before=self.lib_tree)
+
+        # Double-click to play
+        self.lib_tree.bind("<Double-1>", lambda e: self._play_library_selected())
+        # Right-click context menu
+        self.lib_menu = tk.Menu(self.root, tearoff=0)
+        self.lib_menu.add_command(label="▶ Reproducir", command=self._play_library_selected)
+        self.lib_menu.add_command(label="🗑️ Eliminar", command=self._delete_library_selected)
+        self.lib_menu.add_command(label="📂 Abrir carpeta", command=self._open_library_folder)
+        self.lib_tree.bind("<Button-3>", self._show_lib_menu)
+
+        # Initial load
+        self._refresh_library()
+
+    def _get_library_dir(self):
+        return self.cfg.get("library_path", DEFAULT_CONFIG["library_path"])
+
+    def _refresh_library(self):
+        """Scan library folder and populate tree."""
+        for item in self.lib_tree.get_children():
+            self.lib_tree.delete(item)
+
+        lib_dir = self._get_library_dir()
+        if not os.path.isdir(lib_dir):
+            self.lib_status.configure(text="Carpeta no existe")
+            return
+
+        files = []
+        for f in os.listdir(lib_dir):
+            if f.lower().endswith((".mp3", ".wav")):
+                full = os.path.join(lib_dir, f)
+                meta_path = full + ".json"
+                meta = {}
+                if os.path.isfile(meta_path):
+                    try:
+                        with open(meta_path, "r", encoding="utf-8") as mf:
+                            meta = json.load(mf)
+                    except Exception:
+                        pass
+                stat = os.stat(full)
+                files.append((f, stat.st_mtime, meta, stat.st_size))
+
+        # Sort by date descending
+        files.sort(key=lambda x: x[1], reverse=True)
+
+        for fname, mtime, meta, size in files:
+            dt = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
+            engine = meta.get("engine", "—")
+            voice = meta.get("voice", "—")
+            size_str = self._fmt_size(size)
+            self.lib_tree.insert("", "end", values=(fname, dt, engine, voice, size_str),
+                                 tags=(fname,))
+
+        count = len(files)
+        self.lib_status.configure(text=f"{count} archivo{'s' if count != 1 else ''}")
+
+    def _fmt_size(self, bytes_):
+        for unit in ["B", "KB", "MB", "GB"]:
+            if bytes_ < 1024:
+                return f"{bytes_:.1f} {unit}"
+            bytes_ /= 1024
+        return f"{bytes_:.1f} TB"
+
+    def _get_selected_files(self):
+        """Return list of full paths for selected items."""
+        lib_dir = self._get_library_dir()
+        return [os.path.join(lib_dir, self.lib_tree.item(i, "values")[0])
+                for i in self.lib_tree.selection()]
+
+    def _play_library_selected(self):
+        """Open selected file(s) with system default player."""
+        paths = self._get_selected_files()
+        if not paths:
+            return
+        for p in paths:
+            try:
+                if sys.platform.startswith("linux"):
+                    subprocess.Popen(["xdg-open", p])
+                elif sys.platform == "darwin":
+                    subprocess.Popen(["open", p])
+                elif sys.platform.startswith("win"):
+                    os.startfile(p)
+            except Exception as e:
+                self.set_status(f"⚠️ No se pudo abrir: {e}")
+
+    def _delete_library_selected(self):
+        """Delete selected files and their metadata."""
+        paths = self._get_selected_files()
+        if not paths:
+            return
+        for p in paths:
+            try:
+                os.remove(p)
+                meta = p + ".json"
+                if os.path.isfile(meta):
+                    os.remove(meta)
+            except Exception as e:
+                self.set_status(f"⚠️ Error borrando: {e}")
+        self._refresh_library()
+        self.set_status(f"🗑️ Eliminados {len(paths)} archivo(s)")
+
+    def _open_library_folder(self):
+        """Open library folder in system file manager."""
+        lib_dir = self._get_library_dir()
+        os.makedirs(lib_dir, exist_ok=True)
+        try:
+            if sys.platform.startswith("linux"):
+                subprocess.Popen(["xdg-open", lib_dir])
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", lib_dir])
+            elif sys.platform.startswith("win"):
+                os.startfile(lib_dir)
+        except Exception as e:
+            self.set_status(f"⚠️ No se pudo abrir carpeta: {e}")
+
+    def _show_lib_menu(self, event):
+        """Show context menu on right-click."""
+        item = self.lib_tree.identify_row(event.y)
+        if item:
+            self.lib_tree.selection_set(item)
+            self.lib_menu.tk_popup(event.x_root, event.y_root)
+
+    def _cleanup_library(self):
+        """Delete files older than 30 days."""
+        lib_dir = self._get_library_dir()
+        if not os.path.isdir(lib_dir):
+            return
+        now = time.time()
+        cutoff = now - 30 * 86400  # 30 days
+        deleted = 0
+        for f in os.listdir(lib_dir):
+            full = os.path.join(lib_dir, f)
+            if f.lower().endswith((".mp3", ".wav", ".json")):
+                try:
+                    if os.path.getmtime(full) < cutoff:
+                        os.remove(full)
+                        deleted += 1
+                except Exception:
+                    pass
+        if deleted:
+            self.set_status(f"🧹 Limpieza automática: {deleted} archivo(s) antiguos eliminados")
 
     # ---------- Theme ----------
     def toggle_theme(self):
@@ -874,7 +1092,19 @@ values=["edge", "gtts", "robot"])
                        fieldbackground=[("readonly", self.pal["input"])],
                        foreground=[("readonly", self.pal["fg"])])
         self.style.configure("Horizontal.TScale", background=self.pal["bg"],
-                             troughcolor=self.pal["panel"])
+                              troughcolor=self.pal["panel"])
+        self.style.configure("Treeview",
+                              background=self.pal["input"],
+                              foreground=self.pal["fg"],
+                              fieldbackground=self.pal["input"],
+                              borderwidth=0)
+        self.style.configure("Treeview.Heading",
+                              background=self.pal["panel"],
+                              foreground=self.pal["fg"],
+                              borderwidth=1)
+        self.style.map("Treeview",
+                       background=[("selected", self.pal["select"])],
+                       foreground=[("selected", self.pal["fg"])])
 
         self._paint_container(self.root)
         for button, accent in self.buttons:
