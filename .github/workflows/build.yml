@@ -30,6 +30,8 @@ jobs:
         run: pip install -r requirements.txt
       - name: Smoke test
         run: python tests/smoke_test.py
+      - name: Unit tests
+        run: python tests/test_safety.py
 
   build:
     name: Build (${{ matrix.label }})
@@ -105,6 +107,7 @@ jobs:
               ;;
             Windows)
               curl -fsSL -o espeak-ng.msi https://github.com/espeak-ng/espeak-ng/releases/download/1.52.0/espeak-ng.msi
+              echo "7f673c709ea5dd579d3b5ebb98688cc575328a6ab7438d2bc405b88cedaeafb9  espeak-ng.msi" | sha256sum -c -
               msiexec //a espeak-ng.msi //qn TARGETDIR="$PWD/espeak" >/dev/null 2>&1 || true
               if [ -d espeak ]; then
                 find espeak -iname "espeak-ng.exe" -exec cp -f {} bundle/bin/ \; 2>/dev/null || true

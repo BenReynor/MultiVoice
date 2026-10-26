@@ -5,16 +5,19 @@
 import json
 import os
 import queue
+import shutil
 import subprocess
 import sys
+import tempfile
 import threading
-import time
 import tkinter as tk
 from datetime import datetime
 from tkinter import ttk, filedialog
 from types import SimpleNamespace
 
 import tts_engine
+from library import cleanup_library
+from virtualmic import setup_virtual_mic, teardown_virtual_mic
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(SCRIPT_DIR, "config.json")
@@ -88,60 +91,23 @@ def load_config():
     try:
         with open(CONFIG_PATH, "r", encoding="utf-8") as f:
             cfg.update(json.load(f))
-    except Exception:
+    except FileNotFoundError:
         pass
+    except (OSError, ValueError) as exc:
+        print(f"MultiVoice: ignoring unreadable config.json ({exc})",
+              file=sys.stderr)
     return cfg
 
 
 def save_config(cfg):
+    tmp = CONFIG_PATH + ".tmp"
     try:
-        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+        with open(tmp, "w", encoding="utf-8") as f:
             json.dump(cfg, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
-
-
-MIC_SINK = "virtual-sink"
-MIC_SOURCE = "virtual-mic"
-MIC_DESCRIPTION = "🎤"
-
-
-def _pactl(*args):
-    return subprocess.run(["pactl", *args], stdout=subprocess.PIPE,
-                          stderr=subprocess.DEVNULL, text=True)
-
-
-def setup_virtual_mic():
-    """Load the virtual microphone in PulseAudio/PipeWire.
-
-    Linux only: on Windows/macOS there is no virtual mic, so it does nothing.
-    Returns the list of loaded module ids (to unload later).
-    """
-    if not sys.platform.startswith("linux"):
-        return []
-    for mod in ("module-null-sink", "module-loopback",
-                "module-remap-source", "module-always-sink"):
-        _pactl("unload-module", mod)
-    ids = []
-    r = _pactl("load-module", "module-null-sink",
-               f"sink_name={MIC_SINK}",
-               "sink_properties=device.master_volume=1.0,sink_dont_move=yes",
-               "sample_spec=s16le=2ch=48000Hz")
-    if r.returncode == 0:
-        ids.append(r.stdout.strip())
-    r = _pactl("load-module", "module-remap-source",
-               f"source_name={MIC_SOURCE}",
-               f"master={MIC_SINK}.monitor",
-               f"source_properties=device.description={MIC_DESCRIPTION}")
-    if r.returncode == 0:
-        ids.append(r.stdout.strip())
-    return ids
-
-
-def teardown_virtual_mic(ids):
-    """Unload the virtual mic modules (only the ones the app loaded)."""
-    for i in ids:
-        _pactl("unload-module", str(i))
+        os.replace(tmp, CONFIG_PATH)
+    except OSError as exc:
+        print(f"MultiVoice: could not save config.json ({exc})",
+              file=sys.stderr)
 
 
 class SpeechWorker:
@@ -158,7 +124,7 @@ class SpeechWorker:
         self.status_cb = status_cb
         self.on_clear = on_clear
         self.on_save = on_save
-        self.cancel_current = threading.Event()
+        self.cancel_event = threading.Event()
         threading.Thread(target=self._run, daemon=True).start()
 
     def _run(self):
@@ -171,8 +137,9 @@ class SpeechWorker:
                 continue
             self.busy = True
             self.status_cb("🔊 Speaking...")
-            tmp = os.path.join(os.environ.get("TMPDIR", "/tmp"),
-                               f"multivoice_{threading.get_ident()}_{id(job)}.wav")
+            self.cancel_event.clear()
+            tmp_dir = tempfile.mkdtemp(prefix="multivoice_")
+            tmp = os.path.join(tmp_dir, "speech.wav")
             try:
                 args = SimpleNamespace(**job["opts"])
                 wav = tts_engine.synthesize(job["text"], job["engine"], args,
@@ -188,32 +155,25 @@ class SpeechWorker:
                 if not self.stop_requested:
                     if job.get("clear_after") and self.on_clear:
                         self.on_clear(job.get("widget"))
-                    if job.get("clear_after") and self.on_save:
-                        self.on_save(job.get("widget"))
+                    if job.get("widget") is not None and self.on_save:
+                        self.on_save(job)
                     self.status_cb("✅ Done")
             except Exception as e:
                 if not self.stop_requested:
                     self.status_cb(f"⚠️ Error: {e}")
             finally:
-                for suffix in ("", ".raw.wav", ".mp3"):
-                    try:
-                        os.remove(tmp + suffix)
-                    except OSError:
-                        pass
+                shutil.rmtree(tmp_dir, ignore_errors=True)
                 self.busy = False
-                self.cancel_event = None
 
     def _wait_procs(self, procs):
-        self.cancel_event = threading.Event()
         while any(p.poll() is None for p in procs):
-            if self.cancel_event.is_set():
+            if self.cancel_event.wait(0.1):
                 for p in procs:
                     try:
                         p.terminate()
                     except Exception:
                         pass
                 return
-            threading.Event().wait(0.1)
 
     def enqueue(self, job):
         with self.lock:
@@ -232,8 +192,7 @@ class SpeechWorker:
                 except Exception:
                     pass
             self.procs = []
-        if getattr(self, "cancel_event", None):
-            self.cancel_event.set()
+        self.cancel_event.set()
         self.stop_requested = True
         while True:
             try:
@@ -246,6 +205,7 @@ class TTSApp:
     def __init__(self, root):
         self.root = root
         self.cfg = load_config()
+        self._save_job = None
         self.theme = self.cfg.get("theme", "dark")
         if self.theme not in THEMES:
             self.theme = "dark"
@@ -263,13 +223,12 @@ class TTSApp:
         self.worker = SpeechWorker(
             lambda msg: self.root.after(0, self.set_status, msg),
             on_clear=lambda w: self.root.after(0, self._safe_clear, w),
-            on_save=lambda w: self.root.after(0, self.maybe_auto_save, w))
+            on_save=lambda job: self.root.after(0, self.maybe_auto_save, job))
 
         self._build_style()
         self._build_ui()
-        self.apply_theme()
         self.add_tab()
-        self._build_library_tab()
+        self._build_library_tab()  # also applies the theme
         self._cleanup_library()
 
         self.bind_shortcuts()
@@ -285,6 +244,18 @@ class TTSApp:
         self.metal_slider.set(self.cfg.get("robot_metal", 70))
         self.set_status("✅ Ready — pick engine and voice")
         self._announce_virtual_device()
+
+    def _save_soon(self):
+        """Debounced config write: sliders fire dozens of events per drag."""
+        if self._save_job is not None:
+            self.root.after_cancel(self._save_job)
+        self._save_job = self.root.after(400, self._flush_config)
+
+    def _flush_config(self):
+        if self._save_job is not None:
+            self.root.after_cancel(self._save_job)
+            self._save_job = None
+        save_config(self.cfg)
 
     def _announce_virtual_device(self):
         """Warn about the virtual mic status on Windows/macOS at startup."""
@@ -494,25 +465,25 @@ class TTSApp:
         else:
             lab.configure(text=f"{value:+d}")
         self.cfg[key] = value
-        save_config(self.cfg)
+        self._save_soon()
 
     def _on_metal(self, value):
         v = int(round(float(value)))
         self.metal_value.configure(text=f"{v}%")
         self.cfg["robot_metal"] = v
-        save_config(self.cfg)
+        self._save_soon()
 
     def _persist_sliders(self):
         for key in ("rate", "pitch", "volume"):
             self.cfg[key] = int(round(float(self.sliders[key].get())))
         self.cfg["robot_metal"] = int(round(float(self.metal_slider.get())))
-        save_config(self.cfg)
+        self._save_soon()
 
     def _persist_flags(self):
         self.cfg["auto_clear"] = self.auto_clear_var.get()
         self.cfg["queue_enabled"] = self.queue_var.get()
         self.cfg["auto_save"] = self.auto_save_var.get()
-        save_config(self.cfg)
+        self._save_soon()
 
     def _on_engine_changed(self, event=None):
         """Change the TTS engine and reload the voices."""
@@ -521,7 +492,7 @@ class TTSApp:
             return
         self.current_engine = new_engine
         self.cfg["engine"] = new_engine
-        save_config(self.cfg)
+        self._save_soon()
         self._reload_voices()
         self.voice_combo.configure(values=[v["label"] for v in self.voices])
         # Select the first available voice
@@ -557,7 +528,7 @@ class TTSApp:
                 self.hint.configure(text="✨ Voices available.",
                                     fg=self.pal["fg_dim"])
         self.cfg["voice"] = label
-        save_config(self.cfg)
+        self._save_soon()
 
     def current_voice(self):
         label = self.voice_combo.get()
@@ -570,6 +541,11 @@ class TTSApp:
         return self.voices[0]
 
     def build_job(self, text, widget=None, clear_after=None):
+        job = self._build_job(text, widget, clear_after)
+        job["voice_label"] = self.current_voice()["label"]
+        return job
+
+    def _build_job(self, text, widget=None, clear_after=None):
         voice = self.current_voice()
         rate = int(round(float(self.sliders["rate"].get())))
         pitch = int(round(float(self.sliders["pitch"].get())))
@@ -630,25 +606,27 @@ class TTSApp:
         except tk.TclError:
             pass
 
-    def save_audio(self, auto=False):
-        text_widget = self.get_current_text()
-        if not text_widget:
-            return
-        text = text_widget.get("1.0", tk.END).strip()
-        if not text:
-            if not auto:
-                self.set_status("⚠️ Nothing to save")
-            return
-        voice = self.current_voice()
-        ext = "mp3" if voice["id"] != ROBOT_VOICE else "wav"
+    def save_audio(self, auto=False, job=None):
+        """Save the audio. `job` (auto-save) fixes text/voice at speak time."""
+        if job is None:
+            text_widget = self.get_current_text()
+            if not text_widget:
+                return
+            text = text_widget.get("1.0", tk.END).strip()
+            if not text:
+                if not auto:
+                    self.set_status("⚠️ Nothing to save")
+                return
+            job = self.build_job(text)
+        text = job["text"]
+        ext = "wav" if job["engine"] == "robot" else "mp3"
 
         if auto:
             # Auto-save to library folder with timestamp
             lib_dir = self.cfg.get("library_path", DEFAULT_CONFIG["library_path"])
             os.makedirs(lib_dir, exist_ok=True)
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            fname = f"voz_{ts}.{ext}"
-            path = os.path.join(lib_dir, fname)
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            path = os.path.join(lib_dir, f"voz_{ts}.{ext}")
         else:
             path = filedialog.asksaveasfilename(
                 defaultextension=f".{ext}",
@@ -659,37 +637,32 @@ class TTSApp:
 
         def run():
             try:
-                job = self.build_job(text)
                 args = SimpleNamespace(**job["opts"])
                 tts_engine.synthesize(text, job["engine"], args, path)
                 # Save metadata sidecar
-                meta_path = path + ".json"
                 meta = {
                     "text": text,
                     "engine": job["engine"],
-                    "voice": voice["label"],
-                    "voice_id": voice["id"],
+                    "voice": job.get("voice_label", ""),
                     "opts": job["opts"],
                     "created": datetime.now().isoformat(),
                 }
-                with open(meta_path, "w", encoding="utf-8") as f:
+                with open(path + ".json", "w", encoding="utf-8") as f:
                     json.dump(meta, f, ensure_ascii=False, indent=2)
                 self.root.after(0, lambda: self.set_status(
                     f"✅ Saved: {os.path.basename(path)}"))
             except Exception as exc:
                 msg = str(exc)
-                def show_err():
-                    self.set_status(f"⚠️ Error: {msg}")
-                self.root.after(0, show_err)
+                self.root.after(0, lambda: self.set_status(f"⚠️ Error: {msg}"))
 
         threading.Thread(target=run, daemon=True).start()
         if not auto:
             self.set_status("💾 Saving...")
 
     # Auto-save trigger (called after speak finishes)
-    def maybe_auto_save(self, text_widget):
+    def maybe_auto_save(self, job):
         if self.cfg.get("auto_save", False):
-            self.save_audio(auto=True)
+            self.save_audio(auto=True, job=job)
 
     # ---------- Tabs ----------
     def add_tab(self):
@@ -728,6 +701,9 @@ class TTSApp:
         if not current:
             return
         tab = self.notebook.nametowidget(current)
+        if tab is getattr(self, "lib_tab", None):
+            self._refresh_library()
+            return
         for child in tab.winfo_children():
             if isinstance(child, tk.Text):
                 child.focus_set()
@@ -897,31 +873,18 @@ class TTSApp:
             self.lib_menu.tk_popup(event.x_root, event.y_root)
 
     def _cleanup_library(self):
-        """Delete files older than 30 days."""
-        lib_dir = self._get_library_dir()
-        if not os.path.isdir(lib_dir):
-            return
-        now = time.time()
-        cutoff = now - 30 * 86400  # 30 days
-        deleted = 0
-        for f in os.listdir(lib_dir):
-            full = os.path.join(lib_dir, f)
-            if f.lower().endswith((".mp3", ".wav", ".json")):
-                try:
-                    if os.path.getmtime(full) < cutoff:
-                        os.remove(full)
-                        deleted += 1
-                except Exception:
-                    pass
+        """Delete app-created audio older than 30 days (nothing else)."""
+        deleted = cleanup_library(self._get_library_dir(), days=30)
         if deleted:
-            self.set_status(f"🧹 Limpieza automática: {deleted} archivo(s) antiguos eliminados")
+            self.set_status(
+                f"🧹 Limpieza automática: {deleted} archivo(s) antiguos eliminados")
 
     # ---------- Theme ----------
     def toggle_theme(self):
         idx = THEME_ORDER.index(self.theme)
         self.theme = THEME_ORDER[(idx + 1) % len(THEME_ORDER)]
         self.cfg["theme"] = self.theme
-        save_config(self.cfg)
+        self._save_soon()
         self.apply_theme()
 
     def open_settings(self):
@@ -966,7 +929,7 @@ values=["edge", "gtts", "robot"])
             sel = theme_var.get().split(". ")[1].lower()
             self.theme = sel
             self.cfg["theme"] = sel
-            save_config(self.cfg)
+            self._save_soon()
             self.apply_theme()
 
         cb.bind("<<ComboboxSelected>>", lambda e: _on_theme_change())
@@ -994,7 +957,7 @@ values=["edge", "gtts", "robot"])
                        activebackground=self.pal["bg"],
                        command=lambda: (self.auto_clear_var.set(ac_var.get()),
                                         self.cfg.update({"auto_clear": ac_var.get()}),
-                                        save_config(self.cfg))).pack(anchor="w", padx=14)
+                                        self._save_soon())).pack(anchor="w", padx=14)
 
         tk.Label(aud, text="Queue audio (don't interrupt)", font=("Ubuntu", 10, "bold"),
                  bg=self.pal["bg"], fg=self.pal["fg"]).pack(anchor="w", padx=14, pady=(14, 4))
@@ -1004,7 +967,7 @@ values=["edge", "gtts", "robot"])
                        activebackground=self.pal["bg"],
                        command=lambda: (self.queue_var.set(q_var.get()),
                                         self.cfg.update({"queue_enabled": q_var.get()}),
-                                        save_config(self.cfg))).pack(anchor="w", padx=14)
+                                        self._save_soon())).pack(anchor="w", padx=14)
 
         # --- tab: Robot Voice ---
         rob = tk.Frame(nb, bg=self.pal["bg"])
@@ -1025,7 +988,7 @@ values=["edge", "gtts", "robot"])
                           command=lambda v, k=key, lbl=val: (
                               lbl.configure(text=f"{int(float(v))}{unit}"),
                               self.cfg.update({k: int(float(v))}),
-                              save_config(self.cfg)
+                              self._save_soon()
                           ))
             s.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(8, 8))
 
@@ -1149,6 +1112,7 @@ values=["edge", "gtts", "robot"])
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
     def on_close(self):
+        self._flush_config()
         self.worker.stop()
         self.worker.running = False
         self.worker.q.put(None)
