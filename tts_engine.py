@@ -11,6 +11,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 
 import edge_tts
@@ -103,10 +104,6 @@ def _espeak_env():
     return env
 
 
-def _pipe_to_devnull(r):
-    return "" if r is None else (r.stdout or "")
-
-
 def list_voices(engine="edge"):
     """Return the list of available voices for the given engine."""
     if engine == "edge":
@@ -126,17 +123,30 @@ def list_voices(engine="edge"):
     return []
 
 
-def edge_synth(text, voice, rate, pitch, volume, out_path):
-    """Synthesize with edge-tts. Returns the path to the final WAV."""
-    ext = os.path.splitext(out_path)[1].lower()
-    save_mp3 = ext == ".mp3"
-    if not save_mp3:
-        # work in a temp file and convert to the requested path
-        tmp_mp3 = out_path + ".mp3"
-    else:
-        tmp_mp3 = out_path
+def _mp3_to_final(synth_mp3, out_path):
+    """Run `synth_mp3(path)` and deliver the result as MP3 or WAV.
 
-    async def _gen():
+    A .mp3 out_path is left as is; anything else is converted to a 48 kHz
+    stereo WAV next to out_path. Returns the final path.
+    """
+    if os.path.splitext(out_path)[1].lower() == ".mp3":
+        synth_mp3(out_path)
+        return out_path
+    tmp_mp3 = out_path + ".mp3"
+    try:
+        synth_mp3(tmp_mp3)
+        wav = os.path.splitext(out_path)[0] + ".wav"
+        _run([ffmpeg_bin(), "-y", "-i", tmp_mp3,
+              "-ar", str(SAMPLE_RATE), "-ac", "2", wav])
+    finally:
+        if os.path.exists(tmp_mp3):
+            os.remove(tmp_mp3)
+    return wav
+
+
+def edge_synth(text, voice, rate, pitch, volume, out_path):
+    """Synthesize with edge-tts. Returns the path to the final file."""
+    async def _gen(path):
         com = edge_tts.Communicate(
             text,
             voice=voice,
@@ -144,47 +154,15 @@ def edge_synth(text, voice, rate, pitch, volume, out_path):
             pitch=f"{pitch:+d}Hz",
             volume=f"{volume:+d}%",
         )
-        await com.save(tmp_mp3)
+        await com.save(path)
 
-    asyncio.run(_gen())
-
-    if save_mp3:
-        # the user asked for MP3: leave it as is
-        if os.path.exists(out_path + ".raw.wav"):
-            os.remove(out_path + ".raw.wav")
-        return out_path
-
-    wav = os.path.splitext(out_path)[0] + ".wav"
-    _run([ffmpeg_bin(), "-y", "-i", tmp_mp3,
-          "-ar", str(SAMPLE_RATE), "-ac", "2", wav])
-    if os.path.exists(tmp_mp3):
-        os.remove(tmp_mp3)
-    return wav
+    return _mp3_to_final(lambda p: asyncio.run(_gen(p)), out_path)
 
 
 def gtts_synth(text, lang, slow, out_path):
-    """Synthesize with gTTS (Google TTS). Returns the path to the final WAV."""
-    ext = os.path.splitext(out_path)[1].lower()
-    save_mp3 = ext == ".mp3"
-    if not save_mp3:
-        tmp_mp3 = out_path + ".mp3"
-    else:
-        tmp_mp3 = out_path
-
-    tts = gTTS(text=text, lang=lang, slow=slow)
-    tts.save(tmp_mp3)
-
-    if save_mp3:
-        if os.path.exists(out_path + ".raw.wav"):
-            os.remove(out_path + ".raw.wav")
-        return out_path
-
-    wav = os.path.splitext(out_path)[0] + ".wav"
-    _run([ffmpeg_bin(), "-y", "-i", tmp_mp3,
-          "-ar", str(SAMPLE_RATE), "-ac", "2", wav])
-    if os.path.exists(tmp_mp3):
-        os.remove(tmp_mp3)
-    return wav
+    """Synthesize with gTTS (Google TTS). Returns the path to the final file."""
+    return _mp3_to_final(
+        lambda p: gTTS(text=text, lang=lang, slow=slow).save(p), out_path)
 
 
 def robot_synth(text, speed, pitch, volume, metal, out_path):
@@ -197,7 +175,8 @@ def robot_synth(text, speed, pitch, volume, metal, out_path):
     metal = max(0.0, min(1.0, float(metal)))
 
     _run([espeak_bin(), "-v", "es+m1", "-p", str(pitch), "-s", str(speed),
-          "-a", "150", "-g", "12", "-w", raw, text], env=_espeak_env())
+          "-a", "150", "-g", "12", "-w", raw, "--", text],
+         env=_espeak_env())
 
     factor = 0.72 - 0.30 * metal
     atempo = 1.0 / factor
@@ -282,17 +261,17 @@ class _SdPlayer:
                 rate = w.getframerate()
                 channels = w.getnchannels()
                 width = w.getsampwidth()
-                data = w.readframes(w.getnframes())
-            dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width, "int16")
-            with sd.RawOutputStream(samplerate=rate, channels=channels,
-                                    dtype=dtype, device=self.device) as stream:
-                chunk = rate * channels * width  # ~1 second
-                for i in range(0, len(data), chunk):
-                    if self._stop.is_set():
-                        break
-                    stream.write(data[i:i + chunk])
-        except Exception:
-            pass
+                dtype = {1: "int8", 2: "int16", 4: "int32"}.get(width, "int16")
+                with sd.RawOutputStream(samplerate=rate, channels=channels,
+                                        dtype=dtype,
+                                        device=self.device) as stream:
+                    while not self._stop.is_set():
+                        data = w.readframes(rate // 4)  # ~0.25 s
+                        if not data:
+                            break
+                        stream.write(data)
+        except Exception as exc:
+            print(f"MultiVoice: playback error ({exc})", file=sys.stderr)
         finally:
             self._done.set()
 
@@ -359,13 +338,18 @@ def main():
     ap.add_argument("--no-play", action="store_true", help="Do not play")
     args = ap.parse_args()
 
-    out = args.save or os.path.join(os.environ.get("TMPDIR", "/tmp"),
-                                    "multivoice_speech.wav")
-    wav = synthesize(args.text, args.engine, args, out)
-    if not args.no_play and not args.save:
-        procs = play_wav(wav)
-        for p in procs:
-            p.wait()
+    if args.save:
+        synthesize(args.text, args.engine, args, args.save)
+        return
+    tmp_dir = tempfile.mkdtemp(prefix="multivoice_")
+    try:
+        wav = synthesize(args.text, args.engine, args,
+                         os.path.join(tmp_dir, "speech.wav"))
+        if not args.no_play:
+            for p in play_wav(wav):
+                p.wait()
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":
