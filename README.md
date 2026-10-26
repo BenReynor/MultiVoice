@@ -10,9 +10,19 @@ Type in the window, press **Speak** and your audience hears you with the voice y
 
 ## Installation
 
+### Platform status
+
+| System | Status |
+|--------|--------|
+| **Linux** | ✅ Developed and tested here, including real audio through the virtual microphone. |
+| **Windows** | ⚠️ **Not fully confirmed.** It builds and the window opens in automated tests, but playback through VB-CABLE has not been tested on a real PC. |
+| **macOS** | ⚠️ **Not fully confirmed.** Same as Windows (BlackHole untested on a real Mac), and the macOS-specific buttons have not been checked visually. The Intel build does not include the robot sound (espeak-ng). |
+
+Windows and macOS builds are provided on a best-effort basis. If something fails there, please [open an issue](https://github.com/BenReynor/MultiVoice/issues) with your system version and what you saw.
+
 ### Option 1: pre-built binary (Windows, macOS and Linux)
 
-Download the file for your system from [Releases](https://github.com/BenReynor/tts-multitud/releases) (latest version: `v1.2.0`), unzip it and open it. There is one `.zip` per system:
+Download the file for your system from [Releases](https://github.com/BenReynor/MultiVoice/releases) (latest version: `v1.3.0`), unzip it and open it. There is one `.zip` per system:
 
 - `multivoice-linux-x86_64.zip` → Linux on Intel/AMD processors (most common)
 - `multivoice-linux-arm64.zip` → Linux on ARM (Raspberry Pi, many ARM boards)
@@ -38,8 +48,8 @@ The binary includes Python, the speech libraries, `ffmpeg` and `espeak-ng`. It d
 Requires Python 3.8+ and the system packages `ffmpeg`, `espeak-ng` and `python3-tk`.
 
 ```bash
-git clone https://github.com/BenReynor/tts-multitud.git
-cd tts-multitud
+git clone https://github.com/BenReynor/MultiVoice.git
+cd MultiVoice
 python3 -m pip install -r requirements.txt
 ```
 
@@ -93,7 +103,7 @@ The virtual cable sends audio to Discord but not to your speakers; to hear yours
 - On Windows, if Discord sounds too low, try `Discord → Settings → Voice & Video → Disable audio processing` and adjust the input volume.
 - If it doesn't detect the cable, the app plays through the speakers and warns you when it opens.
 
-> Verified on Linux; routing to BlackHole/VB-CABLE is tested in the automated integration, but not on real Windows/macOS hardware.
+> ⚠️ Verified on Linux only. On Windows and macOS the automated tests confirm the app builds and its window opens, but routing to BlackHole/VB-CABLE has **not** been tested on real hardware yet.
 
 ## What you can do
 
@@ -101,14 +111,15 @@ The virtual cable sends audio to Discord but not to your speakers; to hear yours
 - **Robot sound:** simulates the robotic voice of SCP-079, with metal (distortion), speed, pitch and volume controls.
 - **Multiple tabs:** prepare several texts and play them in a queue, with optional auto-clear.
 - **Save audio:** export the voice to MP3 or WAV from the Save button.
+- **Audio library:** with *Auto-save* on, every spoken text is saved to the library tab (with its text and voice). Files created by the app (`voz_*`) older than 30 days are deleted automatically; any other file in the folder is never touched.
 
 ## Keyboard shortcuts
 
 | Shortcut | Action |
 |----------|--------|
-| Ctrl+Enter | Speak the current tab |
-| Ctrl+T | New tab |
-| Ctrl+W | Close tab |
+| Ctrl+Enter (⌘+Enter on macOS) | Speak the current tab |
+| Ctrl+T (⌘+T) | New tab |
+| Ctrl+W (⌘+W) | Close tab |
 | F5 | Test the selected voice |
 
 ## Notes
@@ -116,3 +127,5 @@ The virtual cable sends audio to Discord but not to your speakers; to hear yours
 - The `🎤` virtual mic only exists on Linux and while the app is open; if you want to choose it in Discord, keep the app open.
 - On Windows and macOS the app uses the system virtual cable (BlackHole or VB-CABLE) if installed; otherwise it plays through the speakers.
 - Edge TTS and Google TTS need internet. The robot works offline and uses `espeak-ng`; it is bundled in the binaries (from source you need to have it installed).
+- **Privacy:** with Edge TTS and Google TTS the text you type is sent to Microsoft and Google respectively. The robot sound is fully local. With Auto-save, the text is also stored in plain text next to each audio file.
+- **Where things are saved:** the audio library goes to `~/MultiVoice_Audio` (Linux) or `Documents/MultiVoice_Audio` (Windows/macOS). The settings of the packaged app are stored in your user config folder (`%APPDATA%\MultiVoice`, `~/Library/Application Support/MultiVoice` or `~/.config/MultiVoice`).
