@@ -270,8 +270,9 @@ class TTSApp:
 
         self._build_style()
         self._build_ui()
+        self.apply_theme()
         self.add_tab()
-        self._build_library_tab()  # also applies the theme
+        self._build_library_tab()
         self._cleanup_library()
 
         self.bind_shortcuts()
