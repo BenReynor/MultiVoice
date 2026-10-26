@@ -17,10 +17,11 @@ from types import SimpleNamespace
 
 import tts_engine
 from library import cleanup_library
+import platform_utils as pu
 from virtualmic import setup_virtual_mic, teardown_virtual_mic
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH = os.path.join(SCRIPT_DIR, "config.json")
+CONFIG_DIR = pu.config_dir()
+CONFIG_PATH = os.path.join(CONFIG_DIR, "config.json")
 ROBOT_VOICE = tts_engine.ROBOT_VOICE
 PROBE_TEXTS = [
     "Hi, this is your new test voice. How do I sound?",
@@ -80,7 +81,7 @@ DEFAULT_CONFIG = {
     "queue_enabled": True,
     "max_tabs": 5,
     "auto_save": False,
-    "library_path": os.path.join(os.path.expanduser("~"), "MultiVoice_Audio"),
+    "library_path": pu.default_library_dir(),
 }
 
 THEME_ORDER = ["dark", "light", "hacker", "dracula", "gruvbox"]
@@ -102,12 +103,54 @@ def load_config():
 def save_config(cfg):
     tmp = CONFIG_PATH + ".tmp"
     try:
+        os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(cfg, f, ensure_ascii=False, indent=2)
         os.replace(tmp, CONFIG_PATH)
     except OSError as exc:
         print(f"MultiVoice: could not save config.json ({exc})",
               file=sys.stderr)
+
+
+class FlatButton(tk.Label):
+    """Label-based button: macOS Aqua ignores bg/fg on tk.Button, so the
+    themes would not show there. Same constructor/configure surface we use."""
+
+    def __init__(self, parent, text="", command=None, width=None, **kw):
+        opts = {"padx": 12, "pady": 5, "cursor": "pointinghand"}
+        opts.update({k: v for k, v in kw.items()
+                     if k in ("font", "padx", "pady", "cursor")})
+        if width:
+            opts["width"] = width
+        super().__init__(parent, text=text, **opts)
+        self._command = command
+        self._active_bg = None
+        self._normal_bg = None
+        self.bind("<Enter>", self._enter)
+        self.bind("<Leave>", self._leave)
+        self.bind("<ButtonRelease-1>", self._click)
+
+    def configure(self, cnf=None, **kw):
+        self._active_bg = kw.pop("activebackground", self._active_bg)
+        kw.pop("activeforeground", None)
+        if "bg" in kw:
+            self._normal_bg = kw["bg"]
+        return super().configure(cnf, **kw) if (kw or cnf) else None
+
+    config = configure
+
+    def _enter(self, _):
+        if self._active_bg:
+            super().configure(bg=self._active_bg)
+
+    def _leave(self, _):
+        if self._normal_bg:
+            super().configure(bg=self._normal_bg)
+
+    def _click(self, e):
+        if (self._command and 0 <= e.x < self.winfo_width()
+                and 0 <= e.y < self.winfo_height()):
+            self._command()
 
 
 class SpeechWorker:
@@ -295,7 +338,7 @@ class TTSApp:
         self.top = tk.Frame(self.root)
         self.top.pack(fill=tk.X, padx=16, pady=(12, 0))
         tk.Label(self.top, text="🎙 MultiVoice",
-                 font=("Ubuntu", 15, "bold")).pack(side=tk.LEFT)
+                 font=(pu.UI_FONT, 15, "bold")).pack(side=tk.LEFT)
         self.btn_settings = self._btn(self.top, "⚙ Settings", self.open_settings)
         self.btn_settings.pack(side=tk.RIGHT, padx=(6, 0))
         self.btn_theme = self._btn(self.top, "🌓 Theme", self.toggle_theme)
@@ -308,7 +351,7 @@ class TTSApp:
         self.inner = tk.Frame(self.voice_card)
         self.inner.pack(fill=tk.X, padx=14, pady=12)
         # Engine
-        tk.Label(self.inner, text="Engine", font=("Ubuntu", 10, "bold")).pack(
+        tk.Label(self.inner, text="Engine", font=(pu.UI_FONT, 10, "bold")).pack(
             side=tk.LEFT, padx=(0, 10))
         self.engine_combo = ttk.Combobox(
             self.inner, state="readonly", width=14,
@@ -316,7 +359,7 @@ class TTSApp:
         self.engine_combo.pack(side=tk.LEFT, padx=(0, 12))
         self.engine_combo.bind("<<ComboboxSelected>>", self._on_engine_changed)
         # Voice
-        tk.Label(self.inner, text="Voice", font=("Ubuntu", 10, "bold")).pack(
+        tk.Label(self.inner, text="Voice", font=(pu.UI_FONT, 10, "bold")).pack(
             side=tk.LEFT, padx=(12, 10))
         self.voice_combo = ttk.Combobox(
             self.inner, state="readonly",
@@ -426,12 +469,16 @@ class TTSApp:
         self._apply_widget_palette()
 
     def _btn(self, parent, text, command, width=None, accent=False):
-        btn = tk.Button(parent, text=text, command=command,
-                        relief="flat", padx=12, pady=5, cursor="hand2",
-                        font=("Ubuntu", 9), takefocus=False,
-                        activeforeground="white")
-        if width:
-            btn.configure(width=width)
+        if pu.IS_MAC:
+            btn = FlatButton(parent, text=text, command=command, width=width,
+                             font=(pu.UI_FONT, 9))
+        else:
+            btn = tk.Button(parent, text=text, command=command,
+                            relief="flat", padx=12, pady=5, cursor="hand2",
+                            font=(pu.UI_FONT, 9), takefocus=False,
+                            activeforeground="white")
+            if width:
+                btn.configure(width=width)
         self.buttons.append((btn, accent))
         return btn
 
@@ -673,12 +720,12 @@ class TTSApp:
         name = f"Voice {self.tab_counter}"
         tab = tk.Frame(self.notebook)
         text = tk.Text(tab, height=12, width=50, relief="flat", wrap="word",
-                       font=("Arial", 11), undo=True,
+                       font=(pu.TEXT_FONT, 11), undo=True,
                        bg=self.pal["input"], fg=self.pal["fg"],
                        insertbackground=self.pal["fg"])
         text.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
         text.bind("<Return>", lambda e: (self.speak(text), "break"))
-        text.bind("<Control-Return>", lambda e: (self.speak(text), "break"))
+        text.bind(f"<{pu.MOD}-Return>", lambda e: (self.speak(text), "break"))
         self.tab_texts[name] = text
         self.notebook.add(tab, text=name)
         self.notebook.select(tab)
@@ -905,7 +952,7 @@ class TTSApp:
         nb.add(gen, text=" General ")
 
         # TTS Engine
-        tk.Label(gen, text="TTS Engine", font=("Ubuntu", 10, "bold"),
+        tk.Label(gen, text="TTS Engine", font=(pu.UI_FONT, 10, "bold"),
                  bg=self.pal["bg"], fg=self.pal["fg"]).pack(anchor="w", padx=14, pady=(14, 4))
         frm_eng = tk.Frame(gen, bg=self.pal["bg"])
         frm_eng.pack(fill=tk.X, padx=14)
@@ -916,7 +963,7 @@ values=["edge", "gtts", "robot"])
         cb_eng.bind("<<ComboboxSelected>>", lambda e: self._on_engine_changed())
 
         # Theme
-        tk.Label(gen, text="Theme", font=("Ubuntu", 10, "bold"),
+        tk.Label(gen, text="Theme", font=(pu.UI_FONT, 10, "bold"),
                  bg=self.pal["bg"], fg=self.pal["fg"]).pack(anchor="w", padx=14, pady=(14, 4))
         frm = tk.Frame(gen, bg=self.pal["bg"])
         frm.pack(fill=tk.X, padx=14)
@@ -935,7 +982,7 @@ values=["edge", "gtts", "robot"])
         cb.bind("<<ComboboxSelected>>", lambda e: _on_theme_change())
 
         # Max tabs
-        tk.Label(gen, text="Max tabs", font=("Ubuntu", 10, "bold"),
+        tk.Label(gen, text="Max tabs", font=(pu.UI_FONT, 10, "bold"),
                  bg=self.pal["bg"], fg=self.pal["fg"]).pack(anchor="w", padx=14, pady=(14, 4))
         frm2 = tk.Frame(gen, bg=self.pal["bg"])
         frm2.pack(fill=tk.X, padx=14)
@@ -949,7 +996,7 @@ values=["edge", "gtts", "robot"])
         aud = tk.Frame(nb, bg=self.pal["bg"])
         nb.add(aud, text=" Audio ")
 
-        tk.Label(aud, text="Auto-clear after speaking", font=("Ubuntu", 10, "bold"),
+        tk.Label(aud, text="Auto-clear after speaking", font=(pu.UI_FONT, 10, "bold"),
                  bg=self.pal["bg"], fg=self.pal["fg"]).pack(anchor="w", padx=14, pady=(14, 4))
         ac_var = tk.BooleanVar(value=self.cfg.get("auto_clear", True))
         tk.Checkbutton(aud, text="Enable", variable=ac_var, bg=self.pal["bg"],
@@ -959,7 +1006,7 @@ values=["edge", "gtts", "robot"])
                                         self.cfg.update({"auto_clear": ac_var.get()}),
                                         self._save_soon())).pack(anchor="w", padx=14)
 
-        tk.Label(aud, text="Queue audio (don't interrupt)", font=("Ubuntu", 10, "bold"),
+        tk.Label(aud, text="Queue audio (don't interrupt)", font=(pu.UI_FONT, 10, "bold"),
                  bg=self.pal["bg"], fg=self.pal["fg"]).pack(anchor="w", padx=14, pady=(14, 4))
         q_var = tk.BooleanVar(value=self.cfg.get("queue_enabled", True))
         tk.Checkbutton(aud, text="Enable", variable=q_var, bg=self.pal["bg"],
@@ -973,7 +1020,7 @@ values=["edge", "gtts", "robot"])
         rob = tk.Frame(nb, bg=self.pal["bg"])
         nb.add(rob, text=" 🔊 Robot Sound ")
 
-        tk.Label(rob, text="Robot sound settings", font=("Ubuntu", 10, "bold"),
+        tk.Label(rob, text="Robot sound settings", font=(pu.UI_FONT, 10, "bold"),
                  bg=self.pal["bg"], fg=self.pal["fg"]).pack(anchor="w", padx=14, pady=(14, 4))
 
         def make_slider(parent, label, key, lo, hi, unit="", default=None):
@@ -1001,14 +1048,14 @@ values=["edge", "gtts", "robot"])
         kbd = tk.Frame(nb, bg=self.pal["bg"])
         nb.add(kbd, text=" ⌨ Shortcuts ")
         for k, v in [
-            ("Ctrl+Enter", "Speak current tab"),
-            ("Ctrl+T", "New tab"),
-            ("Ctrl+W", "Close tab"),
+            (f"{pu.MOD_LABEL}+Enter", "Speak current tab"),
+            (f"{pu.MOD_LABEL}+T", "New tab"),
+            (f"{pu.MOD_LABEL}+W", "Close tab"),
             ("F5", "Test selected voice"),
         ]:
             row = tk.Frame(kbd, bg=self.pal["bg"])
             row.pack(fill=tk.X, padx=14, pady=4)
-            tk.Label(row, text=k, font=("Ubuntu", 9, "bold"),
+            tk.Label(row, text=k, font=(pu.UI_FONT, 9, "bold"),
                      bg=self.pal["bg"], fg=self.pal["accent"], width=12).pack(side=tk.LEFT)
             tk.Label(row, text=v, bg=self.pal["bg"], fg=self.pal["fg_dim"]).pack(side=tk.LEFT)
 
@@ -1104,9 +1151,9 @@ values=["edge", "gtts", "robot"])
         self.status.configure(text=msg)
 
     def bind_shortcuts(self):
-        self.root.bind("<Control-Return>", lambda e: self.speak_current())
-        self.root.bind("<Control-t>", lambda e: (self.add_tab(), "break"))
-        self.root.bind("<Control-w>",
+        self.root.bind(f"<{pu.MOD}-Return>", lambda e: self.speak_current())
+        self.root.bind(f"<{pu.MOD}-t>", lambda e: (self.add_tab(), "break"))
+        self.root.bind(f"<{pu.MOD}-w>",
                        lambda e: (self.delete_current_tab(), "break"))
         self.root.bind("<F5>", lambda e: self.probe_voice())
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)

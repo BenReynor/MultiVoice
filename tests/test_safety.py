@@ -7,6 +7,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import library  # noqa: E402
+import platform_utils  # noqa: E402
 import virtualmic  # noqa: E402
 
 DAY = 86400
@@ -59,6 +60,20 @@ def test_find_module_ids_only_matches_own_modules():
     ids = virtualmic.find_module_ids(
         listing, ("sink_name=virtual-sink", "source_name=virtual-mic"))
     assert ids == ["5", "6"], ids
+
+
+def test_platform_paths():
+    with tempfile.TemporaryDirectory() as home:
+        os.mkdir(os.path.join(home, "Documents"))
+        for plat in ("win32", "darwin"):
+            p = platform_utils.default_library_dir(plat, home)
+            assert p == os.path.join(home, "Documents", "MultiVoice_Audio"), p
+        assert platform_utils.default_library_dir("linux", home) == \
+            os.path.join(home, "MultiVoice_Audio")
+    # from source the config stays next to the script; frozen -> user dir
+    assert platform_utils.config_dir(False, "/src") == "/src"
+    frozen = platform_utils.config_dir(True)
+    assert frozen.endswith("MultiVoice") and "/src" not in frozen, frozen
 
 
 if __name__ == "__main__":
