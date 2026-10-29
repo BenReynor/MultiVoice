@@ -7,6 +7,7 @@ import tkinter as tk
 
 import customtkinter as ctk
 
+import atajo
 import platform_utils as pu
 
 ENGINES = {"edge": "Microsoft Edge", "gtts": "Google TTS",
@@ -88,7 +89,7 @@ class AjustesMixin:
             self._show_section(seccion)
             return
         c = self._col
-        win = self._modal("Ajustes de MultiVoice", 700, 520)
+        win = self._modal("Ajustes de MultiVoice", 700, 620)
         self.settings_win = win
 
         nav = ctk.CTkFrame(win, width=190, corner_radius=0,
@@ -250,3 +251,72 @@ class AjustesMixin:
                          text_color=self._col("--accent")).pack(side="left")
             ctk.CTkLabel(fila, text=v, font=self.font(),
                          text_color=self._col("--text-2")).pack(side="left")
+        self._build_atajo_global(p)
+
+    def _build_atajo_global(self, p):
+        """Atajo para hablar desde cualquier app (`multivoice --decir`)."""
+        self._s_etiqueta(p, "Atajo global para hablar")
+        if pu.IS_WIN:
+            self._s_etiqueta(
+                p, "Abre un cuadro siempre encima donde escribes y Enter lo "
+                   "dice. Formato: ctrl+alt+h.", ayuda=True)
+            fila = ctk.CTkFrame(p, fg_color="transparent")
+            fila.pack(fill="x", padx=24, pady=4)
+            ent = ctk.CTkEntry(fila, width=200, font=self.font())
+            ent.insert(0, self.cfg.get("atajo_global",
+                                       atajo.ATAJO_POR_DEFECTO))
+            ent.pack(side="left")
+            aviso = ctk.CTkLabel(fila, text="", font=self.font(),
+                                 text_color=self._col("--text-2"))
+
+            def guardar():
+                txt = ent.get().strip().lower()
+                if atajo.a_pynput(txt) is None:
+                    aviso.configure(text="Atajo no válido")
+                    return
+                self.cfg["atajo_global"] = txt
+                self._save_soon()
+                ok = self.registrar_atajo_global()
+                aviso.configure(text="Guardado" if ok else "No se pudo registrar")
+
+            b = ctk.CTkButton(fila, text="Guardar", width=90, command=guardar,
+                              height=self._px("--control-h", 36),
+                              font=self.font())
+            self._paint_button(b, True)
+            b.pack(side="left", padx=8)
+            aviso.pack(side="left")
+            return
+        self._s_etiqueta(
+            p, "En Linux (Wayland) las apps no pueden registrar atajos "
+               "globales. Asigna el comando «multivoice --decir» a una tecla "
+               "en los ajustes de tu sistema (Teclado → Atajos "
+               "personalizados) y abrirá un cuadro siempre encima donde "
+               "escribes y Enter lo dice.", ayuda=True)
+        ctk.CTkLabel(p, text=atajo.comando_decir(), anchor="w",
+                     font=ctk.CTkFont(family=pu.TEXT_FONT, size=12),
+                     text_color=self._col("--text")).pack(fill="x", padx=24)
+        if not atajo.es_gnome():
+            return
+        fila = ctk.CTkFrame(p, fg_color="transparent")
+        fila.pack(fill="x", padx=24, pady=8)
+        aviso = ctk.CTkLabel(p, text="", anchor="w", justify="left",
+                             wraplength=420, font=self.font(),
+                             text_color=self._col("--text-2"))
+
+        def crear():
+            txt = self.cfg.get("atajo_global", atajo.ATAJO_POR_DEFECTO)
+            try:
+                tecla = atajo.crear_atajo_gnome(txt)
+                aviso.configure(text=f"Creado en GNOME: {tecla}")
+            except RuntimeError as exc:
+                aviso.configure(text=f"No se pudo crear: {exc}")
+
+        b = ctk.CTkButton(fila, text="Crear atajo en GNOME", command=crear,
+                          height=self._px("--control-h", 36),
+                          font=self.font())
+        self._paint_button(b, True)
+        b.pack(side="left")
+        ctk.CTkLabel(fila, text=f"({self.cfg.get('atajo_global', atajo.ATAJO_POR_DEFECTO)})",
+                     font=self.font(), text_color=self._col("--text-3")
+                     ).pack(side="left", padx=8)
+        aviso.pack(fill="x", padx=24)

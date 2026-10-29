@@ -33,7 +33,7 @@ if [ ! -x "\$R/start.sh" ]; then
     fi
 fi
 if [ -n "\$R" ] && [ -x "\$R/start.sh" ]; then
-    exec bash "\$R/start.sh"
+    exec bash "\$R/start.sh" "\$@"
 fi
 echo "MultiVoice: no se encontró la carpeta (buscada en \$HOME)."
 read -r -p "Pulsa Enter para cerrar..."

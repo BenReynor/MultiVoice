@@ -3,4 +3,4 @@
 cd "$(dirname "$0")"
 
 echo "🔊 Starting MultiVoice..."
-python3 multivoice.py
+python3 multivoice.py "$@"

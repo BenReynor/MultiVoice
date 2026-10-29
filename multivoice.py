@@ -17,12 +17,15 @@ from types import SimpleNamespace
 
 import customtkinter as ctk
 
+import atajo
+import instancia
 import medidor
 import temas
 import tts_engine
 from ajustes import ENGINES, AjustesMixin
 from biblioteca import LIB_TAB, BibliotecaMixin
 from cola import ColaVoz
+from decir_rapido import DecirRapidoMixin
 from panel_cola import ColaMixin
 from perfiles import PerfilesMixin
 import perfiles
@@ -58,6 +61,7 @@ DEFAULT_CONFIG = {
     "max_tabs": 5,
     "auto_save": False,
     "library_path": pu.default_library_dir(),
+    "atajo_global": atajo.ATAJO_POR_DEFECTO,
 }
 
 
@@ -225,7 +229,8 @@ class SpeechWorker:
 
 
 class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
-             FrasesMixin, PronunciacionMixin, SoundboardMixin):
+             FrasesMixin, PronunciacionMixin, SoundboardMixin,
+             DecirRapidoMixin):
     def __init__(self, root):
         self.root = root
         self.cfg = load_config()
@@ -947,10 +952,29 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
         self.worker.running = False
         self.worker.q.put(None)
         teardown_virtual_mic(self.mic_ids)
+        if self.servidor is not None:
+            self.servidor.cerrar()
+        if self.atajo_win is not None:
+            self.atajo_win.detener()
         self.root.destroy()
 
 
-if __name__ == "__main__":
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
+    # Instancia única: si ya hay una abierta se le avisa y se sale
+    servidor, avisada = instancia.arrancar(argv, lambda cmd: None)
+    if servidor is None:
+        if not avisada:
+            print("MultiVoice: ya hay una instancia abierta, pero no responde.",
+                  file=sys.stderr)
+        return
     root = ctk.CTk()
     app = TTSApp(root)
+    app.iniciar_instancia(servidor)
+    if instancia.comando_de_args(argv) == instancia.CMD_DECIR:
+        root.after(300, app.abrir_decir)
     root.mainloop()
+
+
+if __name__ == "__main__":
+    main()

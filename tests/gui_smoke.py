@@ -225,6 +225,20 @@ app._persist_flags()
 assert app.cfg["listen_self"] is True and app.worker.salidas()[0] is True
 app.sb_borrar(0)
 assert soundboard.sonidos(app.cfg) == []
+# Cuadro «Decir»: siempre encima, Enter lo dice; la orden de otra ejecución lo abre
+import instancia  # noqa: E402
+visto.clear()
+app.atender_orden(instancia.CMD_DECIR)
+root.update()
+assert app.decir_win.winfo_exists() and app.decir_win.attributes("-topmost")
+app.decir_entry.insert(0, "hola desde el atajo")
+assert app.decir_enviar() == "hola desde el atajo"
+assert visto[0]["text"] == "hola desde el atajo"
+root.update()
+assert not app.decir_win.winfo_exists()
+app.open_settings("Atajos")
+root.update()
+app.settings_win.destroy()
 app._save_soon()
 app.on_close()
 assert os.path.isfile(mv.CONFIG_PATH), "config.json no se escribió"
