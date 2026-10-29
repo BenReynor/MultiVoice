@@ -106,7 +106,7 @@ class PerfilesMixin:
         h = self._px("--control-h", 36)
         self.lbl_profile = ctk.CTkLabel(
             parent, text="Perfil", font=self.font(self._px("--fs-md", 13), True))
-        self.lbl_profile.pack(side="left", padx=(12, 8))
+        self.lbl_profile.pack(side="left", padx=(0, 8))
         self.profile_menu = ctk.CTkOptionMenu(
             parent, values=[SIN_PERFIL], width=150, height=h,
             corner_radius=self._px("--radius", 8), font=self.font(),

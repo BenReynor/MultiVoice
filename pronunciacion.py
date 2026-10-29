@@ -131,6 +131,12 @@ class PronunciacionMixin:
             barra, text="Usar diccionario", variable=self.pron_var,
             command=self._pron_alternar, font=self.font())
         self.pron_switch.pack(side="left", padx=(0, 10))
+        self._reg(self.pron_switch, lambda w: w.configure(
+            progress_color=self._col("--accent"),
+            button_color=self._col("--text"),
+            button_hover_color=self._col("--text-2"),
+            fg_color=self._col("--border-strong"),
+            text_color=self._col("--text")))
         self._btn(barra, "＋ Regla", self._pron_agregar).pack(side="left")
         self.pron_lista = ctk.CTkScrollableFrame(self.pron_tab, corner_radius=8)
         self.pron_lista.pack(fill="both", expand=True, padx=4, pady=(0, 4))
@@ -165,11 +171,13 @@ class PronunciacionMixin:
             dice.pack(side="left", fill="x", expand=True)
             self._paint_entry(dice)
             completa = ctk.BooleanVar(value=r["whole"])
-            ctk.CTkCheckBox(
+            cb = ctk.CTkCheckBox(
                 fila, text="Palabra completa", variable=completa,
                 font=self.font(),
                 command=lambda j=i, v=completa: self._pron_guardar(
-                    j, completa=v.get())).pack(side="left", padx=8)
+                    j, completa=v.get()))
+            cb.pack(side="left", padx=8)
+            self._reg(cb, self._paint_check)
             b = self._btn(fila, "✕", lambda j=i: self._pron_borrar(j))
             b.configure(width=h)
             b.pack(side="right")

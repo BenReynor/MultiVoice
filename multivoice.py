@@ -348,15 +348,23 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
                            weight="bold" if bold else "normal")
 
     def _reg(self, widget, fn):
-        """Registra cómo se pinta un widget con la paleta (ver apply_theme)."""
+        """Registra cómo se pinta un widget con la paleta (ver apply_theme) y lo
+        pinta ya: los widgets creados después de aplicar el tema (filas de
+        frases, reglas…) salían con el azul por defecto de CustomTkinter."""
         self._paints.append((widget, fn))
+        if getattr(self, "p", None):
+            try:
+                fn(widget)
+            except (tk.TclError, AttributeError, KeyError):
+                pass   # p. ej. el tabview antes de tener pestañas: apply_theme lo pinta luego
         return widget
 
     # ---------- UI ----------
     def _build_ui(self):
         self.root.title("MultiVoice")
-        self.root.geometry("1120x720")
-        self.root.minsize(960, 620)
+        self.root.geometry("1120x760")
+        # Con menos alto, los paneles de voz dejaban el cuadro de texto sin sitio.
+        self.root.minsize(960, 720)
         r = self._px("--radius", 8)
         rl = self._px("--radius-lg", 12)
         h = self._px("--control-h", 36)
@@ -403,7 +411,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
         self.voice_card.pack(fill="x", padx=12, pady=(10, 0))
         self._reg(self.voice_card, self._paint_card)
         inner = ctk.CTkFrame(self.voice_card, fg_color="transparent")
-        inner.pack(fill="x", padx=14, pady=10)
+        inner.pack(fill="x", padx=14, pady=(10, 8))
         self.lbl_engine = ctk.CTkLabel(inner, text="Motor",
                                        font=self.font(fs, True))
         self.lbl_engine.pack(side="left", padx=(0, 8))
@@ -422,7 +430,11 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
             values=[v["label"] for v in self.voices],
             command=self._on_voice_changed)
         self.voice_combo.pack(side="left", fill="x", expand=True)
-        self._build_perfiles(inner)
+        # Perfil en su propia fila: en la misma línea que la voz quedaba fuera
+        # de la ventana con anchos pequeños.
+        fila_perfil = ctk.CTkFrame(self.voice_card, fg_color="transparent")
+        fila_perfil.pack(fill="x", padx=14, pady=(0, 10))
+        self._build_perfiles(fila_perfil)
         for lbl in (self.lbl_engine, self.lbl_voice):
             self._reg(lbl, lambda w: w.configure(text_color=self._col("--text")))
         self._reg(self.engine_menu, self._paint_menu)
@@ -460,7 +472,10 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
 
         # ---- Barra inferior ----
         self.bottom = ctk.CTkFrame(self.root, fg_color="transparent")
-        self.bottom.pack(fill="x", padx=12, pady=(8, 4))
+        # Abajo y colocada antes que las pestañas: Tk reparte el espacio en el
+        # orden de colocación, así Hablar nunca se aplasta ni desaparece.
+        self.bottom.pack(fill="x", padx=12, pady=(8, 4), side="bottom",
+                         before=self.tabview)
         opts = ctk.CTkFrame(self.bottom, fg_color="transparent")
         opts.pack(fill="x")
         self.btn_add = self._btn(opts, "＋ Nueva", self.add_tab)
@@ -471,13 +486,17 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
         self.queue_var = tk.BooleanVar(value=self.cfg.get("queue_enabled", True))
         self.auto_save_var = tk.BooleanVar(value=self.cfg.get("auto_save", False))
         self.listen_var = tk.BooleanVar(value=self.cfg.get("listen_self", False))
+        # Las casillas van en su propia fila: junto a Nueva/Cerrar no cabían
+        # y «Escucharme» quedaba fuera de la ventana.
+        checks = ctk.CTkFrame(self.bottom, fg_color="transparent")
+        checks.pack(fill="x", pady=(6, 0))
         for text, var in (("Borrar al hablar", self.auto_clear_var),
                           ("Encolar audios", self.queue_var),
                           ("Guardado automático", self.auto_save_var),
                           ("Escucharme", self.listen_var)):
-            cb = ctk.CTkCheckBox(opts, text=text, variable=var, font=self.font(),
+            cb = ctk.CTkCheckBox(checks, text=text, variable=var, font=self.font(),
                                  command=self._persist_flags)
-            cb.pack(side="left", padx=(14, 0))
+            cb.pack(side="left", padx=(0, 12))
             self._reg(cb, self._paint_check)
 
         actions = ctk.CTkFrame(self.bottom, fg_color="transparent")
@@ -643,12 +662,15 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
                                 else "dark")
         self.root.configure(fg_color=self._col("--bg"))
         self.theme_menu.set(self._theme_label())
+        vivos = []
         for widget, fn in self._paints:
             try:
                 if widget.winfo_exists():
                     fn(widget)
+                    vivos.append((widget, fn))
             except tk.TclError:
                 pass
+        self._paints = vivos   # las filas que se recrean no se acumulan
         for text in self.tab_texts.values():
             self._paint_text(text)
         self._style_library()
