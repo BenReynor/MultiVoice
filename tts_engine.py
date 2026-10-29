@@ -211,14 +211,13 @@ def get_default_sink():
 # Virtual cable names per system (substring, case-insensitive)
 VIRTUAL_DEVICE_HINTS = {
     "win32": ["cable input", "vb-audio", "voicemeeter"],
-    "darwin": ["blackhole", "loopback", "soundflower"],
 }
 
 
 def find_virtual_output():
-    """Find a virtual output device (VB-CABLE, BlackHole...).
+    """Find a virtual output device (VB-CABLE, Voicemeeter...).
 
-    Returns (index, name) or None. Windows/macOS only; on Linux the virtual
+    Returns (index, name) or None. Windows only; on Linux the virtual
     mic is managed with pactl/PipeWire.
     """
     if sys.platform.startswith("linux"):
@@ -227,8 +226,7 @@ def find_virtual_output():
         import sounddevice as sd
     except Exception:
         return None
-    key = "win32" if sys.platform.startswith("win") else "darwin"
-    hints = VIRTUAL_DEVICE_HINTS.get(key, [])
+    hints = VIRTUAL_DEVICE_HINTS.get("win32", [])
     try:
         devices = sd.query_devices()
     except Exception:
@@ -287,7 +285,7 @@ def play_wav(wav_path):
     """Play the audio.
 
     Linux: to the virtual microphone and to the speakers, with pw-play.
-    Windows/macOS: to the virtual cable (if installed) and to the speakers,
+    Windows: to the virtual cable (if installed) and to the speakers,
     with sounddevice.
     """
     if sys.platform.startswith("linux"):

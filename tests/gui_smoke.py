@@ -33,7 +33,7 @@ app.add_tab()
 app.open_settings()
 root.update()
 btn = app.btn_speak
-btn.configure(bg="#123456", activebackground="#654321")  # FlatButton surface
+btn.configure(bg="#123456", activebackground="#654321")  # themed button surface
 app._save_soon()
 app.on_close()
 assert os.path.isfile(mv.CONFIG_PATH), "config.json not written"

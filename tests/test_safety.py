@@ -65,9 +65,8 @@ def test_find_module_ids_only_matches_own_modules():
 def test_platform_paths():
     with tempfile.TemporaryDirectory() as home:
         os.mkdir(os.path.join(home, "Documents"))
-        for plat in ("win32", "darwin"):
-            p = platform_utils.default_library_dir(plat, home)
-            assert p == os.path.join(home, "Documents", "MultiVoice_Audio"), p
+        p = platform_utils.default_library_dir("win32", home)
+        assert p == os.path.join(home, "Documents", "MultiVoice_Audio"), p
         assert platform_utils.default_library_dir("linux", home) == \
             os.path.join(home, "MultiVoice_Audio")
     # from source the config stays next to the script; frozen -> user dir

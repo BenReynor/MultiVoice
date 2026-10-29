@@ -16,21 +16,16 @@ Type in the window, press **Speak** and your audience hears you with the voice y
 |--------|--------|
 | **Linux** | ✅ Developed and tested here, including real audio through the virtual microphone. |
 | **Windows** | ⚠️ **Not fully confirmed.** It builds and the window opens in automated tests, but playback through VB-CABLE has not been tested on a real PC. |
-| **macOS** | ⚠️ **Not fully confirmed.** Same as Windows (BlackHole untested on a real Mac), and the macOS-specific buttons have not been checked visually. The Intel build does not include the robot sound (espeak-ng). |
 
-Windows and macOS builds are provided on a best-effort basis. If something fails there, please [open an issue](https://github.com/BenReynor/MultiVoice/issues) with your system version and what you saw.
+Windows builds are provided on a best-effort basis. If something fails there, please [open an issue](https://github.com/BenReynor/MultiVoice/issues) with your system version and what you saw.
 
-### Option 1: pre-built binary (Windows, macOS and Linux)
+### Option 1: pre-built binary (Linux and Windows)
 
 Download the file for your system from [Releases](https://github.com/BenReynor/MultiVoice/releases) (latest version: `v1.3.0`), unzip it and open it. There is one `.zip` per system:
 
 - `multivoice-linux-x86_64.zip` → Linux on Intel/AMD processors (most common)
 - `multivoice-linux-arm64.zip` → Linux on ARM (Raspberry Pi, many ARM boards)
 - `multivoice-windows-x64.zip` → Windows
-- `multivoice-macos-arm64.zip` → macOS on Apple Silicon (M1/M2/M3/M4)
-- `multivoice-macos-intel.zip` → macOS on Intel processors
-
-If you don't know your macOS, check *Apple  →  About This Mac*; if it doesn't say "Apple", it's Intel.
 
 The `.zip` downloads to your browser's **Downloads** folder and, when unzipped, creates the `multivoice-<OS>` folder wherever you choose. Nothing is installed and no shortcuts are created: the executable runs from wherever you unzip it and you can move it anywhere.
 
@@ -39,9 +34,8 @@ The `.zip` downloads to your browser's **Downloads** folder and, when unzipped, 
   chmod +x multivoice && ./multivoice
   ```
 - **Windows:** run it; if SmartScreen appears, *More info → Run anyway*.
-- **macOS:** open it; if Gatekeeper blocks it, right-click → *Open*, or `xattr -dr com.apple.quarantine multivoice.app`.
 
-The binary includes Python, the speech libraries, `ffmpeg` and `espeak-ng`. It does not include the virtual audio cable for Windows/macOS, which must be installed separately (see below).
+The binary includes Python, the speech libraries, `ffmpeg` and `espeak-ng`. It does not include the virtual audio cable for Windows, which must be installed separately (see below).
 
 ### Option 2: from source
 
@@ -67,7 +61,7 @@ sudo apt install ffmpeg espeak-ng python3-tk
 
 ## Quick start
 
-- **Downloaded binary:** open `multivoice` (Linux/macOS) or `multivoice.exe` (Windows).
+- **Downloaded binary:** open `multivoice` (Linux) or `multivoice.exe` (Windows).
 - **From source:**
 
 ```bash
@@ -81,29 +75,26 @@ On Linux the app creates the `🎤` virtual microphone when it opens and removes
 
 Type some text, press **🔊 Speak** and the voice is heard in your headphones and through the virtual mic.
 
-## Virtual microphone on Windows and macOS
+## Virtual microphone on Windows
 
 There the app cannot create the microphone on its own: it needs a virtual audio cable from the system. The app detects it and plays through it automatically; you only have to select the input in Discord.
 
-1. **Install the cable (once):**
-   - **macOS:** [BlackHole](https://existential.audio/blackhole/) (`brew install --cask blackhole-2ch`).
-   - **Windows:** [VB-CABLE](https://vb-audio.com/Cable/) (installer, requires administrator permissions).
-2. **Choose the input in Discord:** Settings → Voice & Video → Input device → `BlackHole 2ch` (macOS) or `CABLE Output` (Windows).
+1. **Install the cable (once):** [VB-CABLE](https://vb-audio.com/Cable/) (installer, requires administrator permissions).
+2. **Choose the input in Discord:** Settings → Voice & Video → Input device → `CABLE Output`.
 
 ### Hear yourself
 
 The virtual cable sends audio to Discord but not to your speakers; to hear yourself you need to duplicate the output:
 
-- **macOS:** in *Audio MIDI Setup* create a **multi-output device** with your speakers + BlackHole and select it as the system output.
-- **Windows:** in *Sound → Recording → CABLE Output → Properties → Listen* check **Listen to this device** and choose your speakers.
+- In *Sound → Recording → CABLE Output → Properties → Listen* check **Listen to this device** and choose your speakers.
 
 ### If something doesn't sound right
 
-- Leave the app open; on Windows/macOS it only plays while running.
+- Leave the app open; on Windows it only plays while running.
 - On Windows, if Discord sounds too low, try `Discord → Settings → Voice & Video → Disable audio processing` and adjust the input volume.
 - If it doesn't detect the cable, the app plays through the speakers and warns you when it opens.
 
-> ⚠️ Verified on Linux only. On Windows and macOS the automated tests confirm the app builds and its window opens, but routing to BlackHole/VB-CABLE has **not** been tested on real hardware yet.
+> ⚠️ Verified on Linux only. On Windows the automated tests confirm the app builds and its window opens, but routing to VB-CABLE has **not** been tested on real hardware yet.
 
 ## What you can do
 
@@ -117,15 +108,15 @@ The virtual cable sends audio to Discord but not to your speakers; to hear yours
 
 | Shortcut | Action |
 |----------|--------|
-| Ctrl+Enter (⌘+Enter on macOS) | Speak the current tab |
-| Ctrl+T (⌘+T) | New tab |
-| Ctrl+W (⌘+W) | Close tab |
+| Ctrl+Enter | Speak the current tab |
+| Ctrl+T | New tab |
+| Ctrl+W | Close tab |
 | F5 | Test the selected voice |
 
 ## Notes
 
 - The `🎤` virtual mic only exists on Linux and while the app is open; if you want to choose it in Discord, keep the app open.
-- On Windows and macOS the app uses the system virtual cable (BlackHole or VB-CABLE) if installed; otherwise it plays through the speakers.
+- On Windows the app uses the VB-CABLE virtual cable if installed; otherwise it plays through the speakers.
 - Edge TTS and Google TTS need internet. The robot works offline and uses `espeak-ng`; it is bundled in the binaries (from source you need to have it installed).
 - **Privacy:** with Edge TTS and Google TTS the text you type is sent to Microsoft and Google respectively. The robot sound is fully local. With Auto-save, the text is also stored in plain text next to each audio file.
-- **Where things are saved:** the audio library goes to `~/MultiVoice_Audio` (Linux) or `Documents/MultiVoice_Audio` (Windows/macOS). The settings of the packaged app are stored in your user config folder (`%APPDATA%\MultiVoice`, `~/Library/Application Support/MultiVoice` or `~/.config/MultiVoice`).
+- **Where things are saved:** the audio library goes to `~/MultiVoice_Audio` (Linux) or `Documents/MultiVoice_Audio` (Windows). The settings of the packaged app are stored in your user config folder (`%APPDATA%\MultiVoice` or `~/.config/MultiVoice`).

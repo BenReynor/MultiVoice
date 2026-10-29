@@ -112,47 +112,6 @@ def save_config(cfg):
               file=sys.stderr)
 
 
-class FlatButton(tk.Label):
-    """Label-based button: macOS Aqua ignores bg/fg on tk.Button, so the
-    themes would not show there. Same constructor/configure surface we use."""
-
-    def __init__(self, parent, text="", command=None, width=None, **kw):
-        opts = {"padx": 12, "pady": 5, "cursor": "pointinghand"}
-        opts.update({k: v for k, v in kw.items()
-                     if k in ("font", "padx", "pady", "cursor")})
-        if width:
-            opts["width"] = width
-        super().__init__(parent, text=text, **opts)
-        self._command = command
-        self._active_bg = None
-        self._normal_bg = None
-        self.bind("<Enter>", self._enter)
-        self.bind("<Leave>", self._leave)
-        self.bind("<ButtonRelease-1>", self._click)
-
-    def configure(self, cnf=None, **kw):
-        self._active_bg = kw.pop("activebackground", self._active_bg)
-        kw.pop("activeforeground", None)
-        if "bg" in kw:
-            self._normal_bg = kw["bg"]
-        return super().configure(cnf, **kw) if (kw or cnf) else None
-
-    config = configure
-
-    def _enter(self, _):
-        if self._active_bg:
-            super().configure(bg=self._active_bg)
-
-    def _leave(self, _):
-        if self._normal_bg:
-            super().configure(bg=self._normal_bg)
-
-    def _click(self, e):
-        if (self._command and 0 <= e.x < self.winfo_width()
-                and 0 <= e.y < self.winfo_height()):
-            self._command()
-
-
 class SpeechWorker:
     """Synthesis queue + playback with the ability to stop."""
 
@@ -302,7 +261,7 @@ class TTSApp:
         save_config(self.cfg)
 
     def _announce_virtual_device(self):
-        """Warn about the virtual mic status on Windows/macOS at startup."""
+        """Warn about the virtual mic status on Windows at startup."""
         if sys.platform.startswith("linux"):
             return
         found = tts_engine.find_virtual_output()
@@ -310,7 +269,7 @@ class TTSApp:
             self.set_status(f"🎤 Virtual cable: {found[1]}")
         else:
             self.set_status(
-                "No virtual cable. Install BlackHole (mac) or VB-CABLE (win)")
+                "No virtual cable. Install VB-CABLE")
 
     def _reload_voices(self):
         """Reload the voice list for the current engine."""
@@ -470,16 +429,12 @@ class TTSApp:
         self._apply_widget_palette()
 
     def _btn(self, parent, text, command, width=None, accent=False):
-        if pu.IS_MAC:
-            btn = FlatButton(parent, text=text, command=command, width=width,
-                             font=(pu.UI_FONT, 9))
-        else:
-            btn = tk.Button(parent, text=text, command=command,
-                            relief="flat", padx=12, pady=5, cursor="hand2",
-                            font=(pu.UI_FONT, 9), takefocus=False,
-                            activeforeground="white")
-            if width:
-                btn.configure(width=width)
+        btn = tk.Button(parent, text=text, command=command,
+                        relief="flat", padx=12, pady=5, cursor="hand2",
+                        font=(pu.UI_FONT, 9), takefocus=False,
+                        activeforeground="white")
+        if width:
+            btn.configure(width=width)
         self.buttons.append((btn, accent))
         return btn
 
@@ -876,8 +831,6 @@ class TTSApp:
             try:
                 if sys.platform.startswith("linux"):
                     subprocess.Popen(["xdg-open", p])
-                elif sys.platform == "darwin":
-                    subprocess.Popen(["open", p])
                 elif sys.platform.startswith("win"):
                     os.startfile(p)
             except Exception as e:
@@ -906,8 +859,6 @@ class TTSApp:
         try:
             if sys.platform.startswith("linux"):
                 subprocess.Popen(["xdg-open", lib_dir])
-            elif sys.platform == "darwin":
-                subprocess.Popen(["open", lib_dir])
             elif sys.platform.startswith("win"):
                 os.startfile(lib_dir)
         except Exception as e:

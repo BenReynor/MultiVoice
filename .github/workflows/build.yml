@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -37,8 +37,8 @@ jobs:
         run: |
           sudo apt-get install -y xvfb python3-tk
           xvfb-run -a python tests/gui_smoke.py
-      - name: GUI smoke test (Windows/macOS)
-        if: runner.os != 'Linux'
+      - name: GUI smoke test (Windows)
+        if: runner.os == 'Windows'
         run: python tests/gui_smoke.py
 
   build:
@@ -56,19 +56,12 @@ jobs:
             label: linux-arm64
           - os: windows-latest
             label: windows-x64
-          - os: macos-latest
-            label: macos-intel
-            python_arch: x64
-          - os: macos-latest
-            label: macos-arm64
-            python_arch: arm64
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
-          architecture: ${{ matrix.python_arch }}
 
       - name: System dependencies
         shell: bash
@@ -78,15 +71,10 @@ jobs:
               sudo apt-get update
               sudo apt-get install -y ffmpeg espeak-ng
               ;;
-            macOS)
-              brew install espeak-ng || true
-              ;;
           esac
 
       - name: Bundle espeak-ng with the app (best effort)
         shell: bash
-        env:
-          PY_ARCH: ${{ matrix.python_arch }}
         run: |
           mkdir -p bundle/bin
           case "$RUNNER_OS" in
@@ -95,22 +83,6 @@ jobs:
                 cp "$(command -v espeak-ng)" bundle/bin/ || true
                 ldd "$(command -v espeak-ng)" 2>/dev/null | awk '/=>/{print $3}' | xargs -r -I{} cp -n {} bundle/bin/ 2>/dev/null || true
                 cp -rn /usr/lib/*/espeak-ng-data /usr/share/espeak-ng-data bundle/bin/ 2>/dev/null || true
-              fi
-              ;;
-            macOS)
-              if [ "$PY_ARCH" = "x64" ]; then
-                echo "Skipping espeak on the Intel build (brew installs arm64)"
-              else
-                ES="$(brew --prefix espeak-ng 2>/dev/null)/bin/espeak-ng"
-                if [ -x "$ES" ]; then
-                  cp "$ES" bundle/bin/
-                  for lib in $(otool -L "$ES" | tail -n +2 | awk '{print $1}'); do
-                    case "$lib" in
-                      /opt/homebrew/lib/*|/usr/local/lib/*) cp -n "$lib" bundle/bin/ 2>/dev/null || true ;;
-                    esac
-                  done
-                  cp -rn "$(brew --prefix espeak-ng)/share/espeak-ng-data" bundle/bin/ 2>/dev/null || true
-                fi
               fi
               ;;
             Windows)
@@ -130,20 +102,6 @@ jobs:
         shell: bash
         run: pip install -r requirements.txt pyinstaller pillow
 
-      - name: Create .icns icon (macOS)
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          mkdir -p icon.iconset
-          for p in "16 icon_16x16" "32 icon_16x16@2x" "32 icon_32x32" "64 icon_32x32@2x" \
-                   "128 icon_128x128" "256 icon_128x128@2x" "256 icon_256x256" \
-                   "512 icon_256x256@2x" "512 icon_512x512" "1024 icon_512x512@2x"; do
-            set -- $p
-            sips -z $1 $1 assets/icon.png --out "icon.iconset/$2.png" >/dev/null
-          done
-          iconutil -c icns icon.iconset -o assets/icon.icns
-          ls -la assets/icon.icns
-
       - name: Build executable
         shell: bash
         run: |
@@ -153,7 +111,6 @@ jobs:
           ARGS+=(--collect-all edge_tts --collect-all gtts --collect-all imageio_ffmpeg)
           case "$RUNNER_OS" in
             Windows) ARGS+=(--icon assets/icon.ico --version-file packaging/version_info.txt --hidden-import sounddevice) ;;
-            macOS)   ARGS+=(--icon assets/icon.icns --osx-bundle-identifier com.benreynor.multivoice --hidden-import sounddevice) ;;
           esac
           if [ -d bundle/bin ]; then
             ARGS+=(--add-data "bundle/bin${SEP}bin")
