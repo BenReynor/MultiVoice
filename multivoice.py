@@ -27,6 +27,7 @@ from biblioteca import LIB_TAB, BibliotecaMixin
 from cola import ColaVoz
 from decir_rapido import DecirRapidoMixin
 from panel_cola import ColaMixin
+from pantalla_carga import PantallaCarga
 from perfiles import PerfilesMixin
 import perfiles
 import frases
@@ -231,8 +232,10 @@ class SpeechWorker:
 class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
              FrasesMixin, PronunciacionMixin, SoundboardMixin,
              DecirRapidoMixin):
-    def __init__(self, root):
+    def __init__(self, root, progreso=None):
         self.root = root
+        avance = progreso or (lambda texto, fraccion: None)
+        avance("Leyendo tu configuración…", 0.05)
         self.cfg = load_config()
         self._save_job = None
         self.theme, self.mode = temas.traducir_nombre(
@@ -244,12 +247,14 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
         self.current_engine = self.cfg.get("engine", "edge")
         if self.current_engine not in ENGINES:
             self.current_engine = "edge"
+        avance("Cargando voces…", 0.12)
         self._reload_voices()
 
         self.tab_texts = {}
         self.tab_counter = 0
         self._paints = []
 
+        avance("Creando el micrófono virtual…", 0.25)
         self.mic_ids = setup_virtual_mic()
 
         self.worker = SpeechWorker(
@@ -263,12 +268,18 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
 
         self.style = ttk.Style()
         self.style.theme_use("clam")
+        avance("Preparando la ventana…", 0.4)
         self._build_ui()
         self.add_tab()
+        avance("Cargando frases rápidas…", 0.55)
         self._build_frases_tab()
+        avance("Cargando el diccionario…", 0.63)
         self._build_pronunciacion_tab()
+        avance("Cargando el soundboard…", 0.7)
         self._build_soundboard_tab()
+        avance("Cargando la biblioteca…", 0.78)
         self._build_library_tab()
+        avance("Aplicando el tema…", 0.88)
         self.apply_theme()
         self._cleanup_library()
 
@@ -286,6 +297,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
         self._on_voice_changed()
         self.set_status("✅ Listo: elige motor y voz")
         self._announce_virtual_device()
+        avance("Listo", 1.0)
 
     def _save_soon(self):
         """Debounced config write: sliders fire dozens of events per drag."""
@@ -991,7 +1003,13 @@ def main(argv=None):
                   file=sys.stderr)
         return
     root = ctk.CTk()
-    app = TTSApp(root)
+    # La ventana se construye oculta; mientras, la pantalla de carga muestra
+    # el avance (antes se veía aparecer cada control).
+    root.withdraw()
+    carga = PantallaCarga(root)
+    app = TTSApp(root, progreso=carga.paso)
+    carga.cerrar()
+    root.deiconify()
     app.iniciar_instancia(servidor)
     if instancia.comando_de_args(argv) == instancia.CMD_DECIR:
         root.after(300, app.abrir_decir)

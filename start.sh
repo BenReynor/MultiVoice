@@ -16,10 +16,16 @@ LOG="${XDG_CACHE_HOME:-$HOME/.cache}/multivoice/instalar.log"
 mkdir -p "$(dirname "$LOG")"
 QUIERO="$(sha1sum requirements.txt | cut -d' ' -f1)"
 
+# Progress for the waiting window, on fd 3: a percentage and "# step" lines
+# (zenity --progress format); the commands' own output goes to the log.
+avance() { printf '%s\n# %s\n' "$1" "$2" >&3; }
+
 preparar() {
     echo "== $(date '+%F %T') preparando el entorno"
+    avance 5 "Comprobando el entorno…"
     if command -v uv >/dev/null 2>&1; then
         if [ ! -x "$PY" ]; then
+            avance 10 "Creando el entorno de Python…"
             # The system Python ships Tk (python3-tk); uv's own builds may not.
             if [ -x /usr/bin/python3 ]; then
                 uv venv --python /usr/bin/python3 "$VENV" || return 1
@@ -27,11 +33,15 @@ preparar() {
                 uv venv "$VENV" || return 1
             fi
         fi
+        avance 30 "Instalando dependencias (voces, interfaz)…"
         uv pip install --python "$PY" -r requirements.txt || return 1
     else
+        avance 10 "Creando el entorno de Python…"
         [ -x "$PY" ] || python3 -m venv "$VENV" || return 1
+        avance 30 "Instalando dependencias (voces, interfaz)…"
         "$PY" -m pip install -r requirements.txt || return 1
     fi
+    avance 95 "Terminando…"
     echo "$QUIERO" > "$STAMP"
     echo "== listo"
 }
@@ -43,12 +53,12 @@ hay_pantalla() {
 if [ ! -x "$PY" ] || [ "$(cat "$STAMP" 2>/dev/null)" != "$QUIERO" ]; then
     RC_FILE="$(mktemp)"
     if hay_pantalla; then
-        { preparar >>"$LOG" 2>&1; echo $? > "$RC_FILE"; echo 100; } |
-            zenity --progress --pulsate --auto-close --no-cancel --title=MultiVoice \
-                --width=420 --text="Preparando MultiVoice (dependencias)…\nSolo la primera vez o tras una actualización." 2>/dev/null
+        { preparar 3>&1 >>"$LOG" 2>&1; echo $? > "$RC_FILE"; echo 100; } |
+            zenity --progress --auto-close --no-cancel --title="MultiVoice — actualizando" \
+                --width=420 --text="Preparando MultiVoice (solo la primera vez o tras una actualización)…" 2>/dev/null
     else
         echo "🔧 Preparando el entorno de MultiVoice…"
-        preparar >>"$LOG" 2>&1; echo $? > "$RC_FILE"
+        preparar 3>/dev/null >>"$LOG" 2>&1; echo $? > "$RC_FILE"
     fi
     rc="$(cat "$RC_FILE")"; rm -f "$RC_FILE"
     if [ "$rc" != "0" ]; then

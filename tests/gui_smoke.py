@@ -26,7 +26,23 @@ with open(mv.CONFIG_PATH, "w", encoding="utf-8") as f:
     f.write('{"theme": "hacker"}')
 
 root = ctk.CTk()
-app = mv.TTSApp(root)
+# Arranque como en main(): ventana oculta y pantalla de carga con el avance.
+root.withdraw()
+carga = mv.PantallaCarga(root)
+pasos = []
+
+
+def _avance(texto, fraccion):
+    pasos.append((texto, fraccion))
+    carga.paso(texto, fraccion)
+
+
+app = mv.TTSApp(root, progreso=_avance)
+assert len(pasos) >= 5 and pasos[-1][1] == 1.0, pasos
+assert [f for _, f in pasos] == sorted(f for _, f in pasos), "la barra retrocede"
+assert carga.barra.get() == 1.0
+carga.cerrar()
+root.deiconify()
 pal = temas.paleta("cyberpunk")
 assert app.theme == "cyberpunk", "el tema guardado no se leyó"
 assert app.btn_speak.cget("fg_color") == pal["--accent"], "tema no aplicado al arrancar"
