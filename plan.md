@@ -6,7 +6,7 @@ el smoke test del motor y el test de la ventana real (Xvfb).
 
 ## FASE 1 — Nueva interfaz con CustomTkinter
 
-- [ ] Temas desde las skills de diseño
+- [x] Temas desde las skills de diseño
   criterio: siguiendo la skill ui-tokens, los 10 temas de las skills estilo-* ya están copiados en assets/temas/<nombre>.css (minimal, discord, cyberpunk, calido, datos, anime, manga, glass, retro, brutalista; no los modifiques) y un módulo temas.py los lee (base + variante de modo) y devuelve una paleta con los tokens del contrato (`--bg`, `--surface`, `--text`, `--accent`, `--accent-text`, `--danger`, radios…) y la lista de temas disponibles con su nombre en español; un tema guardado con un nombre antiguo (dark, light, hacker, dracula, gruvbox) se traduce a uno nuevo; tests de pytest para leer un tema, la variante de modo y la traducción de nombres antiguos
 - [ ] Ventana principal con CustomTkinter
   criterio: usando las skills ui-tokens, estilo-discord y diseno-escritorio, `customtkinter` está en requirements.txt y la ventana se construye con widgets de CustomTkinter coloreados con la paleta de temas.py (tema por defecto «Discord»): cabecera con el nombre de la app, selector de tema y botón de ajustes; barra de motor y voz con «Probar»; panel de ajuste de voz que solo muestra los controles del motor elegido (el «metal» solo con el robot); editor de texto con pestañas; barra inferior con **Hablar** como botón principal grande, Detener y Guardar, y una barra de estado; toda la interfaz en español; se conservan todos los atajos de teclado y funciones actuales; tests/gui_smoke.py se adapta y comprueba que el tema guardado se aplica al arrancar y que cada tema se aplica sin error
