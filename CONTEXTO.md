@@ -43,6 +43,10 @@ Hablar y la gente escucha la voz elegida.
 
 ## Reglas para el agente
 
+- El agente no puede leer archivos fuera del repositorio (las skills viven en
+  `~/.claude/skills`): lo que haga falta de ellas ya está copiado en el repo
+  (`assets/temas/*.css`). Las reglas de cada skill se leen cargando la skill.
+
 - Entorno: `.venv` creado con **uv** (ya está en el PATH del loop). Para
   dependencias nuevas: añadirlas a `requirements.txt` y usar `uv pip install`.
 - **Nunca** llamar de verdad a `setup_virtual_mic`/`pactl` ni reproducir audio en
