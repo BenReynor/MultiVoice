@@ -108,7 +108,9 @@ jobs:
           SEP=":"
           if [ "$RUNNER_OS" = "Windows" ]; then SEP=";"; fi
           ARGS=(pyinstaller --noconfirm --clean --onefile --windowed --name multivoice)
-          ARGS+=(--collect-all edge_tts --collect-all gtts --collect-all imageio_ffmpeg)
+          ARGS+=(--collect-all edge_tts --collect-all gtts --collect-all imageio_ffmpeg --collect-all customtkinter)
+          # Themes from the estilo-* skills, read at runtime via sys._MEIPASS
+          ARGS+=(--add-data "assets/temas${SEP}assets/temas")
           case "$RUNNER_OS" in
             Windows) ARGS+=(--icon assets/icon.ico --version-file packaging/version_info.txt --hidden-import sounddevice) ;;
           esac
