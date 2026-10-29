@@ -16,6 +16,20 @@ Type in the window, press **Speak** and your audience hears you with the voice y
 > install VB-CABLE yourself (see [Virtual microphone on Windows](#virtual-microphone-on-windows)).
 > If it fails, please [open an issue](https://github.com/BenReynor/MultiVoice/issues).
 
+## Screenshots
+
+The window is built with CustomTkinter and ships 10 selectable themes
+(default: Discord style).
+
+- TODO: screenshot of the main window (Discord theme)
+- TODO: screenshot of the Settings window with the theme picker
+- TODO: screenshot of the audio Library
+
+Packaged builds (PyInstaller) bundle CustomTkinter's data files
+(`--collect-all customtkinter`) and the themes (`--add-data assets/temas`).
+If you add a dependency with data files or a folder read at run time, add it to
+the "Build executable" step of `.github/workflows/build.yml` too.
+
 ## Installation
 
 ### Platform status

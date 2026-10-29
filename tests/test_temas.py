@@ -61,3 +61,20 @@ def test_light_pasa_a_minimal_claro():
 def test_nombre_desconocido_usa_el_defecto():
     assert temas.traducir_nombre("xyz") == (temas.TEMA_POR_DEFECTO, None)
     assert temas.traducir_nombre(None) == (temas.TEMA_POR_DEFECTO, None)
+
+
+def test_temas_desde_codigo_fuente(monkeypatch):
+    monkeypatch.delattr(sys, "_MEIPASS", raising=False)
+    esperado = os.path.join(os.path.dirname(os.path.abspath(temas.__file__)), "assets", "temas")
+    assert temas.carpeta_temas() == esperado
+    assert len(temas.lista_temas()) == len(temas.TEMAS)
+
+
+def test_temas_desde_meipass_de_pyinstaller(monkeypatch, tmp_path):
+    import shutil
+    origen = os.path.join(os.path.dirname(os.path.abspath(temas.__file__)), "assets", "temas")
+    shutil.copytree(origen, tmp_path / "assets" / "temas")
+    monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
+    assert temas.carpeta_temas() == str(tmp_path / "assets" / "temas")
+    assert len(temas.lista_temas()) == len(temas.TEMAS)
+    assert temas.paleta("discord")["--bg"] == "#313338"
