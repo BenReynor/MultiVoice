@@ -62,5 +62,12 @@ if [ ! -x "$PY" ] || [ "$(cat "$STAMP" 2>/dev/null)" != "$QUIERO" ]; then
     fi
 fi
 
+# Keep the shortcut's icon in step with the program (installed by install.sh).
+ICONO="$HOME/.local/share/icons/hicolor/512x512/apps/multivoice.png"
+if [ -f "$ICONO" ] && ! cmp -s assets/icon.png "$ICONO"; then
+    cp assets/icon.png "$ICONO"
+    gtk-update-icon-cache -q -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+fi
+
 echo "🔊 Starting MultiVoice..."
 exec "$PY" multivoice.py "$@"

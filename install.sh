@@ -9,13 +9,16 @@ set -e
 REPO="$(cd "$(dirname "$0")" && pwd)"
 APP="multivoice"
 
-ICON_DIR="$HOME/.local/share/icons"
+ICON_DIR="$HOME/.local/share/icons/hicolor/512x512/apps"
 BIN_DIR="$HOME/.local/bin"
 APP_DIR="$HOME/.local/share/applications"
 mkdir -p "$ICON_DIR" "$BIN_DIR" "$APP_DIR"
 
-# Icon: copied to a fixed location, so it keeps working wherever the repo is.
+# Icon: installed by name in the user's hicolor theme (`Icon=multivoice`), so it
+# keeps working wherever the repo is. start.sh refreshes it when it changes:
+# desktops cache icons by file path, a fixed .png never showed a new icon.
 cp "$REPO/assets/icon.png" "$ICON_DIR/$APP.png"
+gtk-update-icon-cache -q -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
 
 # Dynamic launcher: tries the recorded path first, then searches inside $HOME.
 cat > "$BIN_DIR/$APP" <<EOF
@@ -45,7 +48,7 @@ cat > "$APP_DIR/$APP.desktop" <<EOF
 Name=MultiVoice
 Comment=Speak through a virtual microphone
 Exec=$BIN_DIR/$APP
-Icon=$ICON_DIR/$APP.png
+Icon=$APP
 Terminal=false
 Type=Application
 Categories=AudioVideo;Audio;
