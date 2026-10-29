@@ -111,6 +111,7 @@ jobs:
           ARGS+=(--collect-all edge_tts --collect-all gtts --collect-all imageio_ffmpeg --collect-all customtkinter)
           # Themes from the estilo-* skills, read at runtime via sys._MEIPASS
           ARGS+=(--add-data "assets/temas${SEP}assets/temas")
+          ARGS+=(--add-data "assets/icon.png${SEP}assets")   # pantalla de carga
           case "$RUNNER_OS" in
             Windows) ARGS+=(--icon assets/icon.ico --version-file packaging/version_info.txt --hidden-import sounddevice --hidden-import pynput.keyboard._win32 --hidden-import pynput.mouse._win32) ;;
           esac
