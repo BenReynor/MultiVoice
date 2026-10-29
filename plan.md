@@ -27,7 +27,7 @@ el smoke test del motor y el test de la ventana real (Xvfb).
   criterio: una tabla editable de reemplazos (texto → cómo decirlo, palabra completa o no, sin distinguir mayúsculas) se aplica antes de sintetizar en todos los motores y se puede activar o desactivar; trae algunos de ejemplo (xd → equis de, etc.); la función de reemplazo es pura y tiene tests de pytest (palabra completa, mayúsculas, varios reemplazos, desactivado)
 - [x] Escucharse a uno mismo y soundboard
   criterio: un interruptor «Escucharme» reproduce también por la salida normal lo que suena por el micrófono virtual (en Linux y en Windows; si no hay micrófono virtual no duplica); una vista Soundboard permite añadir archivos de audio propios (mp3/wav/ogg), ponerles nombre y reproducirlos por el micrófono virtual con un botón, respetando la cola; los archivos se convierten con el ffmpeg de la app; tests de pytest de la conversión y de la lista del soundboard (sin reproducir audio de verdad)
-- [ ] Atajo global para hablar
+- [x] Atajo global para hablar
   criterio: la app es de instancia única (una segunda ejecución con `--decir` avisa a la primera por un socket local y sale); `multivoice --decir` abre en la instancia abierta un cuadro pequeño siempre encima donde se escribe y Enter lo dice; en Windows se registra un atajo global configurable (pynput) que abre ese cuadro; en Linux, como Wayland no permite atajos globales a las apps, Ajustes → Atajos explica cómo asignar `multivoice --decir` a una tecla en el sistema y, en GNOME, ofrece crearlo automáticamente con gsettings; tests de pytest de la instancia única y del paso de mensajes
 
 Verificación manual (el dueño, en Linux con Discord):
