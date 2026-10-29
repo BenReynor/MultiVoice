@@ -19,7 +19,7 @@ el smoke test del motor y el test de la ventana real (Xvfb).
 
 - [x] Cola e historial visibles
   criterio: siguiendo las skills ui-tokens y diseno-escritorio, un panel lateral muestra lo que está sonando (texto recortado, voz y una barra de progreso), lo que espera en la cola (cada elemento se puede quitar) y el historial de lo dicho en esta sesión (repetir con un clic); un medidor de nivel muestra el volumen mientras suena; la lógica de cola/historial vive fuera de la interfaz (módulo propio) y tiene tests de pytest (encolar, quitar, avanzar, historial con tope)
-- [ ] Perfiles de voz
+- [x] Perfiles de voz
   criterio: un perfil guarda motor, voz, velocidad, tono, volumen y metal con un nombre (p. ej. «SCP-079», «Narrador»); se crean, renombran y borran desde la interfaz y se eligen con un desplegable en la barra de voz; se guardan en config.json; vienen dos perfiles de ejemplo; tests de pytest de guardar/cargar/borrar perfiles y de config.json antiguo sin perfiles
 - [ ] Frases rápidas
   criterio: siguiendo las skills ui-tokens y diseno-escritorio, una vista de frases rápidas con botones agrupados por categorías (crear, editar, borrar, mover entre categorías) dice la frase al pulsarla con el perfil activo o con uno propio de la frase; las nueve primeras se disparan con Ctrl+1…Ctrl+9; se guardan en config.json; tests de pytest de la lógica de frases y categorías
