@@ -167,6 +167,37 @@ assert "Prueba2" in app.cfg["profiles"] and "Prueba" not in app.cfg["profiles"]
 app.profile_delete()
 assert "Prueba2" not in app.cfg["profiles"]
 root.update()
+# Frases rápidas: vista, decir con el perfil activo y con uno propio, Ctrl+1
+import frases  # noqa: E402
+dichas = []
+app.worker.enqueue = dichas.append
+app.tabview.set(frases.TAB_FRASES)
+app.on_tab_changed()
+root.update()
+assert frases.categorias(app.cfg) == ["Saludos", "Reacciones"]
+assert app.decir_frase("Saludos", 0)
+assert dichas[-1]["text"] == "Hola a todos"
+frases.editar(app.cfg, "Saludos", 1, perfil="SCP-079")
+assert app.decir_frase("Saludos", 1)
+assert dichas[-1]["engine"] == "robot", dichas[-1]
+assert app.root.bind("<Control-Key-9>"), "Ctrl+9 sin atajo"
+app.decir_numero(1)
+assert dichas[-1]["text"] == "Hola a todos" and len(dichas) == 3
+app.frase_dialogo()
+texto, cat, perf, sin = app._frase_dialogo_campos
+texto.insert(0, "Frase nueva")
+cat.set("Chistes")
+app._frase_dialogo_aceptar()
+assert frases.frases(app.cfg, "Chistes")[0]["text"] == "Frase nueva"
+app.frase_dialogo("Chistes", 0)
+texto, cat, perf, sin = app._frase_dialogo_campos
+cat.set("Saludos")
+app._frase_dialogo_aceptar()
+assert frases.frases(app.cfg, "Chistes") == []
+app.confirmar = lambda *a, **k: True
+app.categoria_borrar("Chistes")
+assert "Chistes" not in app.cfg["phrases"]
+root.update()
 app._save_soon()
 app.on_close()
 assert os.path.isfile(mv.CONFIG_PATH), "config.json no se escribió"

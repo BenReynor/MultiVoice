@@ -26,6 +26,8 @@ from cola import ColaVoz
 from panel_cola import ColaMixin
 from perfiles import PerfilesMixin
 import perfiles
+import frases
+from frases import FrasesMixin
 import platform_utils as pu
 from virtualmic import setup_virtual_mic, teardown_virtual_mic
 
@@ -76,6 +78,7 @@ def load_config():
         print(f"MultiVoice: se ignora config.json ilegible ({exc})",
               file=sys.stderr)
     perfiles.asegurar(cfg)
+    frases.asegurar(cfg)
     return cfg
 
 
@@ -207,7 +210,8 @@ class SpeechWorker:
         self._changed()
 
 
-class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin):
+class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
+             FrasesMixin):
     def __init__(self, root):
         self.root = root
         self.cfg = load_config()
@@ -239,6 +243,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin):
         self.style.theme_use("clam")
         self._build_ui()
         self.add_tab()
+        self._build_frases_tab()
         self._build_library_tab()
         self.apply_theme()
         self._cleanup_library()
@@ -615,6 +620,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin):
         for text in self.tab_texts.values():
             self._paint_text(text)
         self._style_library()
+        self._refresh_frases()
         self._refresh_cola(forzar=True)
 
     # ---------- Sliders ----------
@@ -900,6 +906,9 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin):
         self.root.bind(f"<{pu.MOD}-w>",
                        lambda e: (self.delete_current_tab(), "break")[1])
         self.root.bind("<F5>", lambda e: self.probe_voice())
+        for n in range(1, frases.MAX_ATAJOS + 1):
+            self.root.bind(f"<{pu.MOD}-Key-{n}>",
+                           lambda e, n=n: (self.decir_numero(n), "break")[1])
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
     def on_close(self):
