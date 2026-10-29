@@ -24,6 +24,8 @@ from ajustes import ENGINES, AjustesMixin
 from biblioteca import LIB_TAB, BibliotecaMixin
 from cola import ColaVoz
 from panel_cola import ColaMixin
+from perfiles import PerfilesMixin
+import perfiles
 import platform_utils as pu
 from virtualmic import setup_virtual_mic, teardown_virtual_mic
 
@@ -73,6 +75,7 @@ def load_config():
     except (OSError, ValueError) as exc:
         print(f"MultiVoice: se ignora config.json ilegible ({exc})",
               file=sys.stderr)
+    perfiles.asegurar(cfg)
     return cfg
 
 
@@ -204,7 +207,7 @@ class SpeechWorker:
         self._changed()
 
 
-class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin):
+class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin):
     def __init__(self, root):
         self.root = root
         self.cfg = load_config()
@@ -384,6 +387,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin):
             values=[v["label"] for v in self.voices],
             command=self._on_voice_changed)
         self.voice_combo.pack(side="left", fill="x", expand=True)
+        self._build_perfiles(inner)
         for lbl in (self.lbl_engine, self.lbl_voice):
             self._reg(lbl, lambda w: w.configure(text_color=self._col("--text")))
         self._reg(self.engine_menu, self._paint_menu)

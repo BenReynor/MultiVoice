@@ -153,6 +153,20 @@ root.update()
 assert "En cola (1)" in app.lbl_cola.cget("text"), "repetir no encola"
 app.set_theme("minimal")             # el panel se repinta sin errores
 root.update()
+# perfiles: desplegable con los de ejemplo, aplicar, guardar, renombrar, borrar
+assert {"SCP-079", "Narrador"} <= set(app.profile_menu.cget("values"))
+assert app.apply_profile("SCP-079")
+assert app.current_engine == "robot" and app.metal_slider.get() == 85
+app.profile_menu.set("SCP-079")
+app._pedir_nombre = lambda *a, **k: "Prueba"
+app.profile_save_new()
+assert "Prueba" in app.profile_menu.cget("values")
+app._pedir_nombre = lambda *a, **k: "Prueba2"
+app.profile_rename()
+assert "Prueba2" in app.cfg["profiles"] and "Prueba" not in app.cfg["profiles"]
+app.profile_delete()
+assert "Prueba2" not in app.cfg["profiles"]
+root.update()
 app._save_soon()
 app.on_close()
 assert os.path.isfile(mv.CONFIG_PATH), "config.json no se escribió"
