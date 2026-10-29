@@ -28,6 +28,8 @@ from perfiles import PerfilesMixin
 import perfiles
 import frases
 from frases import FrasesMixin
+import pronunciacion
+from pronunciacion import PronunciacionMixin
 import platform_utils as pu
 from virtualmic import setup_virtual_mic, teardown_virtual_mic
 
@@ -79,6 +81,7 @@ def load_config():
               file=sys.stderr)
     perfiles.asegurar(cfg)
     frases.asegurar(cfg)
+    pronunciacion.asegurar(cfg)
     return cfg
 
 
@@ -97,10 +100,12 @@ def save_config(cfg):
 class SpeechWorker:
     """Cola de síntesis y reproducción, con posibilidad de detener."""
 
-    def __init__(self, status_cb, on_clear=None, on_save=None, on_change=None):
+    def __init__(self, status_cb, on_clear=None, on_save=None, on_change=None,
+                 pronunciar=None):
         # status_cb, on_clear, on_save, on_change must be scheduled via root.after
         self.cola = ColaVoz()
         self.on_change = on_change
+        self.pronunciar = pronunciar or (lambda t: t)
         # cada trabajo encolado deja una ficha aquí; el trabajo real vive en
         # self.cola (así se puede quitar un elemento que aún espera)
         self.q = queue.Queue()
@@ -138,8 +143,8 @@ class SpeechWorker:
             tmp = os.path.join(tmp_dir, "speech.wav")
             try:
                 args = SimpleNamespace(**job["opts"])
-                wav = tts_engine.synthesize(job["text"], job["engine"], args,
-                                            tmp)
+                wav = tts_engine.synthesize(self.pronunciar(job["text"]),
+                                            job["engine"], args, tmp)
                 if self.stop_requested:
                     continue
                 duracion, niveles = medidor.envolvente(wav)
@@ -211,7 +216,7 @@ class SpeechWorker:
 
 
 class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
-             FrasesMixin):
+             FrasesMixin, PronunciacionMixin):
     def __init__(self, root):
         self.root = root
         self.cfg = load_config()
@@ -237,13 +242,15 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
             lambda msg: self.root.after(0, self.set_status, msg),
             on_clear=lambda w: self.root.after(0, self._safe_clear, w),
             on_save=lambda job: self.root.after(0, self.maybe_auto_save, job),
-            on_change=lambda: self.root.after(0, self._refresh_cola))
+            on_change=lambda: self.root.after(0, self._refresh_cola),
+            pronunciar=lambda t: pronunciacion.aplicar_cfg(t, self.cfg))
 
         self.style = ttk.Style()
         self.style.theme_use("clam")
         self._build_ui()
         self.add_tab()
         self._build_frases_tab()
+        self._build_pronunciacion_tab()
         self._build_library_tab()
         self.apply_theme()
         self._cleanup_library()
@@ -828,7 +835,8 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
         def run():
             try:
                 args = SimpleNamespace(**job["opts"])
-                tts_engine.synthesize(text, job["engine"], args, path)
+                tts_engine.synthesize(pronunciacion.aplicar_cfg(text, self.cfg),
+                                      job["engine"], args, path)
                 # Save metadata sidecar
                 meta = {
                     "text": text,
