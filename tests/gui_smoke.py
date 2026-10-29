@@ -1,4 +1,5 @@
 """Abre la ventana real un momento (necesita pantalla: Xvfb en Linux/CI)."""
+import json
 import os
 import sys
 import tempfile
@@ -70,9 +71,60 @@ app._on_engine_changed("edge")
 app.add_tab()
 assert len(app.tab_texts) == 2
 app.root.event_generate("<Control-w>")
+# El desplegable de motor muestra el motor actual (también en Ajustes)
+assert app.engine_menu.get() == mv.ENGINES["edge"], "motor vacío en la ventana"
 app.open_settings()
 root.update()
-app.settings_win.destroy()
+win = app.settings_win
+assert win.winfo_exists() and isinstance(win, ctk.CTkToplevel), "Ajustes no es modal"
+assert win.winfo_toplevel() is win and win is not root
+assert list(app._sections) == ["General", "Audio", "Sonido robot", "Atajos"]
+assert app.settings_engine_menu.get() == mv.ENGINES["edge"], "motor vacío en Ajustes"
+for sec in app._sections:
+    app._show_section(sec)
+    root.update()
+    assert app._sections[sec].winfo_manager() == "pack", sec
+app._on_engine_changed("robot")
+assert app.settings_engine_menu.get() == mv.ENGINES["robot"]
+app._on_engine_changed("edge")
+app.open_settings("Atajos")          # no abre una segunda ventana
+assert app.settings_section == "Atajos"
+win.destroy()
+root.update()
+
+# Biblioteca: lista, búsqueda, reproducir, abrir carpeta y borrar con confirmación
+lib = app._get_library_dir()
+os.makedirs(lib, exist_ok=True)
+for nombre, texto, voz in (("voz_1.mp3", "Hola mundo", "Jorge"),
+                           ("voz_2.wav", "Adiós robot", "Sonido robot")):
+    with open(os.path.join(lib, nombre), "wb") as f:
+        f.write(b"x" * 2048)
+    with open(os.path.join(lib, nombre + ".json"), "w", encoding="utf-8") as f:
+        json.dump({"text": texto, "voice": voz, "engine": "edge"}, f)
+app.tabview.set(mv.LIB_TAB)
+app.on_tab_changed()
+root.update()
+assert len(app.lib_entries) == 2
+app.lib_search_var.set("robot")
+root.update()
+assert [e["name"] for e in app.lib_entries] == ["voz_2.wav"]
+app.lib_search_var.set("zzz")
+assert app.lib_entries == [] and "Nada coincide" in str(
+    [w.cget("text") for w in app.lib_list.winfo_children()])
+app.lib_search_var.set("")
+abiertos = []
+app._open_path = abiertos.append
+app._play_library_path(os.path.join(lib, "voz_1.mp3"))
+app._open_library_folder()
+assert abiertos == [os.path.join(lib, "voz_1.mp3"), lib]
+app.confirmar = lambda *a, **k: False
+assert not app._delete_library_entry(os.path.join(lib, "voz_1.mp3"))
+assert os.path.exists(os.path.join(lib, "voz_1.mp3")), "borró sin confirmar"
+app.confirmar = lambda *a, **k: True
+assert app._delete_library_entry(os.path.join(lib, "voz_1.mp3"))
+assert not os.path.exists(os.path.join(lib, "voz_1.mp3"))
+assert not os.path.exists(os.path.join(lib, "voz_1.mp3.json"))
+assert len(app.lib_entries) == 1
 app._save_soon()
 app.on_close()
 assert os.path.isfile(mv.CONFIG_PATH), "config.json no se escribió"

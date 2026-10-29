@@ -7,7 +7,6 @@ import os
 import queue
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
 import threading
@@ -20,7 +19,8 @@ import customtkinter as ctk
 
 import temas
 import tts_engine
-from library import cleanup_library
+from ajustes import ENGINES, AjustesMixin
+from biblioteca import LIB_TAB, BibliotecaMixin
 import platform_utils as pu
 from virtualmic import setup_virtual_mic, teardown_virtual_mic
 
@@ -33,9 +33,6 @@ PROBE_TEXTS = [
     "Todas las amenazas han sido neutralizadas. Todo está bajo control.",
 ]
 
-ENGINES = {"edge": "Microsoft Edge", "gtts": "Google TTS",
-           "robot": "Sonido robot"}
-LIB_TAB = "📁 Biblioteca"
 _HEX6 = re.compile(r"^#[0-9a-fA-F]{6}$")
 _HEX8 = re.compile(r"^#[0-9a-fA-F]{8}$")
 
@@ -179,7 +176,7 @@ class SpeechWorker:
                 break
 
 
-class TTSApp:
+class TTSApp(AjustesMixin, BibliotecaMixin):
     def __init__(self, root):
         self.root = root
         self.cfg = load_config()
@@ -629,6 +626,9 @@ class TTSApp:
         self._reload_voices()
         self.voice_combo.configure(values=[v["label"] for v in self.voices])
         self.engine_menu.set(ENGINES[new_engine])
+        menu = getattr(self, "settings_engine_menu", None)
+        if menu is not None and menu.winfo_exists():
+            menu.set(ENGINES[new_engine])
         # Select the first available voice
         if self.voices:
             self.voice_combo.set(self.voices[0]["label"])
@@ -852,297 +852,6 @@ class TTSApp:
 
     def get_current_text(self):
         return self.tab_texts.get(self.tabview.get())
-
-    # ---------- Biblioteca ----------
-    def _build_library_tab(self):
-        """Create the library tab with file list and controls."""
-        self.lib_tab = self.tabview.add(LIB_TAB)
-
-        toolbar = ctk.CTkFrame(self.lib_tab, fg_color="transparent")
-        toolbar.pack(fill="x", padx=4, pady=(2, 6))
-        self._btn(toolbar, "🔄 Actualizar", self._refresh_library).pack(
-            side="left", padx=(0, 6))
-        self._btn(toolbar, "🗑 Eliminar selección",
-                  self._delete_library_selected).pack(side="left", padx=(0, 6))
-        self._btn(toolbar, "📂 Abrir carpeta",
-                  self._open_library_folder).pack(side="left")
-        self.lib_status = ctk.CTkLabel(toolbar, text="", anchor="e",
-                                       font=self.font())
-        self.lib_status.pack(side="right", padx=8)
-        self._reg(self.lib_status, lambda w: w.configure(
-            text_color=self._col("--text-2")))
-
-        holder = ctk.CTkFrame(self.lib_tab, fg_color="transparent")
-        holder.pack(fill="both", expand=True, padx=4, pady=(0, 4))
-        columns = ("name", "date", "engine", "voice", "size")
-        self.lib_tree = ttk.Treeview(holder, columns=columns, show="headings",
-                                     selectmode="extended")
-        for col, text, width, anchor in (
-                ("name", "Archivo", 220, "w"), ("date", "Fecha", 140, "center"),
-                ("engine", "Motor", 80, "center"), ("voice", "Voz", 160, "w"),
-                ("size", "Tamaño", 80, "e")):
-            self.lib_tree.heading(col, text=text)
-            self.lib_tree.column(col, width=width, anchor=anchor)
-        vsb = ctk.CTkScrollbar(holder, command=self.lib_tree.yview)
-        self.lib_tree.configure(yscrollcommand=vsb.set)
-        vsb.pack(side="right", fill="y")
-        self.lib_tree.pack(side="left", fill="both", expand=True)
-        self._reg(vsb, lambda w: w.configure(
-            button_color=self._col("--border-strong"),
-            button_hover_color=self._col("--accent")))
-
-        self.lib_tree.bind("<Double-1>", lambda e: self._play_library_selected())
-        self.lib_menu = tk.Menu(self.root, tearoff=0)
-        self.lib_menu.add_command(label="▶ Reproducir", command=self._play_library_selected)
-        self.lib_menu.add_command(label="🗑 Eliminar", command=self._delete_library_selected)
-        self.lib_menu.add_command(label="📂 Abrir carpeta", command=self._open_library_folder)
-        self.lib_tree.bind("<Button-3>", self._show_lib_menu)
-        self._refresh_library()
-
-    def _style_library(self):
-        c = self._col
-        self.style.configure("Treeview", background=c("--surface-2"),
-                             foreground=c("--text"),
-                             fieldbackground=c("--surface-2"), borderwidth=0,
-                             rowheight=26)
-        self.style.configure("Treeview.Heading", background=c("--surface"),
-                             foreground=c("--text"), borderwidth=0,
-                             relief="flat")
-        self.style.map("Treeview",
-                       background=[("selected", c("--accent"))],
-                       foreground=[("selected", c("--accent-text"))])
-        self.style.map("Treeview.Heading",
-                       background=[("active", c("--surface-hover"))])
-        self.lib_menu.configure(bg=c("--surface"), fg=c("--text"),
-                                activebackground=c("--accent"),
-                                activeforeground=c("--accent-text"))
-
-    def _get_library_dir(self):
-        return self.cfg.get("library_path", DEFAULT_CONFIG["library_path"])
-
-    def _refresh_library(self):
-        """Scan library folder and populate tree."""
-        for item in self.lib_tree.get_children():
-            self.lib_tree.delete(item)
-
-        lib_dir = self._get_library_dir()
-        if not os.path.isdir(lib_dir):
-            self.lib_status.configure(text="La carpeta no existe")
-            return
-
-        files = []
-        for f in os.listdir(lib_dir):
-            if f.lower().endswith((".mp3", ".wav")):
-                full = os.path.join(lib_dir, f)
-                meta_path = full + ".json"
-                meta = {}
-                if os.path.isfile(meta_path):
-                    try:
-                        with open(meta_path, "r", encoding="utf-8") as mf:
-                            meta = json.load(mf)
-                    except Exception:
-                        pass
-                stat = os.stat(full)
-                files.append((f, stat.st_mtime, meta, stat.st_size))
-
-        # Sort by date descending
-        files.sort(key=lambda x: x[1], reverse=True)
-
-        for fname, mtime, meta, size in files:
-            dt = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
-            engine = meta.get("engine", "—")
-            voice = meta.get("voice", "—")
-            size_str = self._fmt_size(size)
-            self.lib_tree.insert("", "end", values=(fname, dt, engine, voice, size_str),
-                                 tags=(fname,))
-
-        count = len(files)
-        self.lib_status.configure(text=f"{count} archivo{'s' if count != 1 else ''}")
-
-    def _fmt_size(self, bytes_):
-        for unit in ["B", "KB", "MB", "GB"]:
-            if bytes_ < 1024:
-                return f"{bytes_:.1f} {unit}"
-            bytes_ /= 1024
-        return f"{bytes_:.1f} TB"
-
-    def _get_selected_files(self):
-        """Return list of full paths for selected items."""
-        lib_dir = self._get_library_dir()
-        return [os.path.join(lib_dir, self.lib_tree.item(i, "values")[0])
-                for i in self.lib_tree.selection()]
-
-    def _play_library_selected(self):
-        """Open selected file(s) with system default player."""
-        paths = self._get_selected_files()
-        if not paths:
-            return
-        for p in paths:
-            try:
-                if sys.platform.startswith("linux"):
-                    subprocess.Popen(["xdg-open", p])
-                elif sys.platform.startswith("win"):
-                    os.startfile(p)
-            except Exception as e:
-                self.set_status(f"⚠️ No se pudo abrir: {e}")
-
-    def _delete_library_selected(self):
-        """Delete selected files and their metadata."""
-        paths = self._get_selected_files()
-        if not paths:
-            return
-        for p in paths:
-            try:
-                os.remove(p)
-                meta = p + ".json"
-                if os.path.isfile(meta):
-                    os.remove(meta)
-            except Exception as e:
-                self.set_status(f"⚠️ Error borrando: {e}")
-        self._refresh_library()
-        self.set_status(f"🗑️ Eliminados {len(paths)} archivo(s)")
-
-    def _open_library_folder(self):
-        """Open library folder in system file manager."""
-        lib_dir = self._get_library_dir()
-        os.makedirs(lib_dir, exist_ok=True)
-        try:
-            if sys.platform.startswith("linux"):
-                subprocess.Popen(["xdg-open", lib_dir])
-            elif sys.platform.startswith("win"):
-                os.startfile(lib_dir)
-        except Exception as e:
-            self.set_status(f"⚠️ No se pudo abrir la carpeta: {e}")
-
-    def _show_lib_menu(self, event):
-        """Show context menu on right-click."""
-        item = self.lib_tree.identify_row(event.y)
-        if item:
-            self.lib_tree.selection_set(item)
-            self.lib_menu.tk_popup(event.x_root, event.y_root)
-
-    def _cleanup_library(self):
-        """Delete app-created audio older than 30 days (nothing else)."""
-        deleted = cleanup_library(self._get_library_dir(), days=30)
-        if deleted:
-            self.set_status(
-                f"🧹 Limpieza automática: {deleted} archivo(s) antiguos eliminados")
-
-    # ---------- Ajustes ----------
-    def open_settings(self):
-        """Ventana de ajustes (General, Audio, Sonido robot, Atajos)."""
-        win = ctk.CTkToplevel(self.root)
-        win.title("⚙ Ajustes")
-        win.geometry("480x520")
-        win.resizable(False, False)
-        win.transient(self.root)
-        win.after(150, lambda: self._grab(win))
-        win.configure(fg_color=self._col("--bg"))
-        text, dim = self._col("--text"), self._col("--text-2")
-
-        tv = ctk.CTkTabview(win, fg_color=self._col("--surface"),
-                            segmented_button_fg_color=self._col("--surface-2"),
-                            segmented_button_selected_color=self._col("--accent"),
-                            segmented_button_selected_hover_color=self._col("--accent-hover"),
-                            segmented_button_unselected_color=self._col("--surface-2"),
-                            segmented_button_unselected_hover_color=self._col("--surface-hover"),
-                            text_color=text)
-        tv.pack(fill="both", expand=True, padx=10, pady=(10, 0))
-        gen, aud, rob, kbd = (tv.add(n) for n in
-                              ("General", "Audio", "Sonido robot", "Atajos"))
-
-        def label(parent, txt, bold=True, color=None):
-            lab = ctk.CTkLabel(parent, text=txt, anchor="w",
-                               font=self.font(bold=bold),
-                               text_color=color or text)
-            lab.pack(fill="x", padx=14, pady=(12, 2))
-            return lab
-
-        def slider(parent, txt, key, lo, hi, unit="", default=0):
-            cur = int(self.cfg.get(key, default))
-            fr = ctk.CTkFrame(parent, fg_color="transparent")
-            fr.pack(fill="x", padx=14, pady=4)
-            ctk.CTkLabel(fr, text=txt, width=150, anchor="w", font=self.font(),
-                         text_color=text).pack(side="left")
-            val = ctk.CTkLabel(fr, text=f"{cur}{unit}", width=60, anchor="e",
-                               font=self.font(), text_color=dim)
-            val.pack(side="right")
-
-            def cambio(v):
-                v = int(round(float(v)))
-                val.configure(text=f"{v}{unit}")
-                self.cfg[key] = v
-                if key == "robot_metal":
-                    self.metal_slider.set(v)
-                    self._on_metal(v)
-                self._save_soon()
-
-            s = ctk.CTkSlider(fr, from_=lo, to=hi, command=cambio,
-                              fg_color=self._col("--border-strong"),
-                              progress_color=self._col("--accent"),
-                              button_color=self._col("--accent"),
-                              button_hover_color=self._col("--accent-hover"))
-            s.set(cur)
-            s.pack(side="left", fill="x", expand=True, padx=8)
-
-        def check(parent, txt, var, key):
-            def cambio():
-                self.cfg[key] = var.get()
-                self._save_soon()
-            cb = ctk.CTkCheckBox(parent, text=txt, variable=var,
-                                 font=self.font(), command=cambio)
-            self._paint_check(cb)
-            cb.pack(anchor="w", padx=14, pady=(0, 4))
-
-        label(gen, "Máximo de pestañas")
-        slider(gen, "Pestañas", "max_tabs", 1, 10, default=5)
-        label(gen, "El motor y el tema se eligen en la ventana principal.",
-              bold=False, color=dim)
-
-        label(aud, "Después de hablar")
-        check(aud, "Borrar el texto al hablar", self.auto_clear_var, "auto_clear")
-        label(aud, "Reproducción")
-        check(aud, "Encolar audios (no interrumpir)", self.queue_var,
-              "queue_enabled")
-        label(aud, "Biblioteca")
-        check(aud, "Guardar cada audio hablado", self.auto_save_var, "auto_save")
-
-        label(rob, "Ajustes del sonido robot")
-        slider(rob, "Velocidad (ppm)", "robot_speed", 40, 450, default=135)
-        slider(rob, "Tono espeak", "robot_pitch", 1, 99, default=30)
-        slider(rob, "Metal (distorsión)", "robot_metal", 0, 100, "%", default=70)
-        slider(rob, "Volumen (dB)", "robot_volume", -50, 50, "dB")
-
-        for k, v in [
-            (f"{pu.MOD_LABEL}+Enter", "Hablar la pestaña actual"),
-            ("Enter", "Hablar desde el editor"),
-            (f"{pu.MOD_LABEL}+T", "Nueva pestaña"),
-            (f"{pu.MOD_LABEL}+W", "Cerrar pestaña"),
-            ("F5", "Probar la voz elegida"),
-        ]:
-            row = ctk.CTkFrame(kbd, fg_color="transparent")
-            row.pack(fill="x", padx=14, pady=4)
-            ctk.CTkLabel(row, text=k, width=130, anchor="w",
-                         font=self.font(bold=True),
-                         text_color=self._col("--accent")).pack(side="left")
-            ctk.CTkLabel(row, text=v, font=self.font(),
-                         text_color=dim).pack(side="left")
-
-        btn = ctk.CTkButton(win, text="Cerrar", command=win.destroy,
-                            height=self._px("--control-h", 36),
-                            corner_radius=self._px("--radius", 8),
-                            font=self.font())
-        self._paint_button(btn, True)
-        btn.pack(side="right", padx=10, pady=10)
-        self.settings_win = win
-
-    @staticmethod
-    def _grab(win):
-        try:
-            if win.winfo_exists():
-                win.grab_set()
-        except tk.TclError:
-            pass  # sin foco o sin pantalla: el diálogo sigue siendo usable
 
     # ---------- Estado / atajos ----------
     def set_status(self, msg):
