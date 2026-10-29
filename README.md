@@ -8,6 +8,14 @@ Type in the window, press **Speak** and your audience hears you with the voice y
 
 </div>
 
+> [!WARNING]
+> **Windows is experimental and untested on a real PC.** MultiVoice is developed
+> and used on Linux. On Windows the app builds and its window opens in automated
+> tests, but the main feature, speaking into Discord through the **VB-CABLE**
+> virtual cable, has never been tried on real hardware. On Windows you must
+> install VB-CABLE yourself (see [Virtual microphone on Windows](#virtual-microphone-on-windows)).
+> If it fails, please [open an issue](https://github.com/BenReynor/MultiVoice/issues).
+
 ## Installation
 
 ### Platform status
@@ -15,7 +23,7 @@ Type in the window, press **Speak** and your audience hears you with the voice y
 | System | Status |
 |--------|--------|
 | **Linux** | ✅ Developed and tested here, including real audio through the virtual microphone. |
-| **Windows** | ⚠️ **Not fully confirmed.** It builds and the window opens in automated tests, but playback through VB-CABLE has not been tested on a real PC. |
+| **Windows** | 🧪 **Experimental, untested on a real PC.** It builds and the window opens in automated tests, but playback through VB-CABLE has not been tested on real hardware. `install.sh` and `start.sh` are Linux-only: on Windows use `multivoice.exe` or `python multivoice.py`. |
 
 Windows builds are provided on a best-effort basis. If something fails there, please [open an issue](https://github.com/BenReynor/MultiVoice/issues) with your system version and what you saw.
 
