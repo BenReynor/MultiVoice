@@ -30,6 +30,8 @@ import frases
 from frases import FrasesMixin
 import pronunciacion
 from pronunciacion import PronunciacionMixin
+import soundboard
+from soundboard import SoundboardMixin
 import platform_utils as pu
 from virtualmic import setup_virtual_mic, teardown_virtual_mic
 
@@ -82,6 +84,7 @@ def load_config():
     perfiles.asegurar(cfg)
     frases.asegurar(cfg)
     pronunciacion.asegurar(cfg)
+    soundboard.asegurar(cfg)
     return cfg
 
 
@@ -101,11 +104,13 @@ class SpeechWorker:
     """Cola de síntesis y reproducción, con posibilidad de detener."""
 
     def __init__(self, status_cb, on_clear=None, on_save=None, on_change=None,
-                 pronunciar=None):
+                 pronunciar=None, salidas=None):
         # status_cb, on_clear, on_save, on_change must be scheduled via root.after
         self.cola = ColaVoz()
         self.on_change = on_change
         self.pronunciar = pronunciar or (lambda t: t)
+        # () -> (escuchar, hay_virtual) en el momento de reproducir
+        self.salidas = salidas or (lambda: (True, True))
         # cada trabajo encolado deja una ficha aquí; el trabajo real vive en
         # self.cola (así se puede quitar un elemento que aún espera)
         self.q = queue.Queue()
@@ -142,13 +147,17 @@ class SpeechWorker:
             tmp_dir = tempfile.mkdtemp(prefix="multivoice_")
             tmp = os.path.join(tmp_dir, "speech.wav")
             try:
-                args = SimpleNamespace(**job["opts"])
-                wav = tts_engine.synthesize(self.pronunciar(job["text"]),
-                                            job["engine"], args, tmp)
+                if job["engine"] == soundboard.MOTOR:
+                    wav = job["opts"]["file"]    # ya convertido: no se borra
+                else:
+                    args = SimpleNamespace(**job["opts"])
+                    wav = tts_engine.synthesize(
+                        self.pronunciar(job["text"]), job["engine"], args, tmp)
                 if self.stop_requested:
                     continue
                 duracion, niveles = medidor.envolvente(wav)
-                procs = tts_engine.play_wav(wav)
+                escuchar, hay_virtual = self.salidas()
+                procs = tts_engine.play_wav(wav, escuchar, hay_virtual)
                 self.cola.iniciar_audio(duracion, niveles)
                 with self.lock:
                     self.procs = procs
@@ -216,7 +225,7 @@ class SpeechWorker:
 
 
 class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
-             FrasesMixin, PronunciacionMixin):
+             FrasesMixin, PronunciacionMixin, SoundboardMixin):
     def __init__(self, root):
         self.root = root
         self.cfg = load_config()
@@ -243,7 +252,9 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
             on_clear=lambda w: self.root.after(0, self._safe_clear, w),
             on_save=lambda job: self.root.after(0, self.maybe_auto_save, job),
             on_change=lambda: self.root.after(0, self._refresh_cola),
-            pronunciar=lambda t: pronunciacion.aplicar_cfg(t, self.cfg))
+            pronunciar=lambda t: pronunciacion.aplicar_cfg(t, self.cfg),
+            salidas=lambda: (bool(self.cfg.get("listen_self", False)),
+                             self._hay_virtual()))
 
         self.style = ttk.Style()
         self.style.theme_use("clam")
@@ -251,6 +262,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
         self.add_tab()
         self._build_frases_tab()
         self._build_pronunciacion_tab()
+        self._build_soundboard_tab()
         self._build_library_tab()
         self.apply_theme()
         self._cleanup_library()
@@ -281,6 +293,12 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
             self.root.after_cancel(self._save_job)
             self._save_job = None
         save_config(self.cfg)
+
+    def _hay_virtual(self):
+        """¿Hay micrófono virtual donde sonar? Linux: el que creó la app."""
+        if sys.platform.startswith("linux"):
+            return bool(self.mic_ids)
+        return tts_engine.find_virtual_output() is not None
 
     def _announce_virtual_device(self):
         """Warn about the virtual mic status on Windows at startup."""
@@ -447,9 +465,11 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
         self.auto_clear_var = tk.BooleanVar(value=self.cfg.get("auto_clear", True))
         self.queue_var = tk.BooleanVar(value=self.cfg.get("queue_enabled", True))
         self.auto_save_var = tk.BooleanVar(value=self.cfg.get("auto_save", False))
+        self.listen_var = tk.BooleanVar(value=self.cfg.get("listen_self", False))
         for text, var in (("Borrar al hablar", self.auto_clear_var),
                           ("Encolar audios", self.queue_var),
-                          ("Guardado automático", self.auto_save_var)):
+                          ("Guardado automático", self.auto_save_var),
+                          ("Escucharme", self.listen_var)):
             cb = ctk.CTkCheckBox(opts, text=text, variable=var, font=self.font(),
                                  command=self._persist_flags)
             cb.pack(side="left", padx=(14, 0))
@@ -658,6 +678,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
         self.cfg["auto_clear"] = self.auto_clear_var.get()
         self.cfg["queue_enabled"] = self.queue_var.get()
         self.cfg["auto_save"] = self.auto_save_var.get()
+        self.cfg["listen_self"] = self.listen_var.get()
         self._save_soon()
 
     def _on_engine_selected(self, label):

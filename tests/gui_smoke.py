@@ -198,6 +198,33 @@ app.confirmar = lambda *a, **k: True
 app.categoria_borrar("Chistes")
 assert "Chistes" not in app.cfg["phrases"]
 root.update()
+# Soundboard: añadir (con ffmpeg falso), listar y encolar sin reproducir
+import types  # noqa: E402
+import soundboard  # noqa: E402
+orig_run = soundboard.tts_engine._run
+
+
+def _ffmpeg_falso(cmd, **kw):
+    open(cmd[-1], "wb").close()
+    return types.SimpleNamespace(returncode=0)
+
+
+soundboard.tts_engine._run = _ffmpeg_falso
+origen = os.path.join(tmp, "risa.mp3")
+open(origen, "wb").close()
+assert app.sb_anadir_archivo(origen)
+soundboard.tts_engine._run = orig_run
+assert [s["name"] for s in soundboard.sonidos(app.cfg)] == ["risa"]
+visto = []
+app.worker.enqueue = visto.append
+assert app.sb_reproducir(0)
+assert visto[0]["engine"] == "sound" and os.path.isfile(visto[0]["opts"]["file"])
+assert app.listen_var.get() is False
+app.listen_var.set(True)
+app._persist_flags()
+assert app.cfg["listen_self"] is True and app.worker.salidas()[0] is True
+app.sb_borrar(0)
+assert soundboard.sonidos(app.cfg) == []
 app._save_soon()
 app.on_close()
 assert os.path.isfile(mv.CONFIG_PATH), "config.json no se escribió"

@@ -281,31 +281,46 @@ class _SdPlayer:
         self._done.wait(2)
 
 
-def play_wav(wav_path):
+def plan_salidas(linux, hay_virtual, escuchar):
+    """Salidas de audio donde suena un archivo: "virtual" y/o "normal".
+
+    Siempre suena por el micrófono virtual si existe; por la salida normal
+    solo si el usuario activó «Escucharme» o si no hay micrófono virtual (así
+    no queda mudo, y nunca se duplica el audio por la misma salida)."""
+    salidas = []
+    if hay_virtual:
+        salidas.append("virtual")
+    if escuchar or not hay_virtual:
+        salidas.append("normal")
+    return salidas
+
+
+def play_wav(wav_path, escuchar=True, hay_virtual=True):
     """Play the audio.
 
-    Linux: to the virtual microphone and to the speakers, with pw-play.
-    Windows: to the virtual cable (if installed) and to the speakers,
-    with sounddevice.
+    Linux: to the virtual microphone (if it exists) and, if `escuchar`, to
+    the speakers, with pw-play. Windows: to the virtual cable (if installed)
+    and, if `escuchar`, to the speakers, with sounddevice.
     """
     if sys.platform.startswith("linux"):
         procs = []
-        procs.append(subprocess.Popen(
-            ["pw-play", "--target=virtual-sink", wav_path],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
-        sink = get_default_sink()
-        if sink:
+        for salida in plan_salidas(True, hay_virtual, escuchar):
+            if salida == "virtual":
+                target = "virtual-sink"
+            else:
+                target = get_default_sink()
+                if not target:
+                    continue
             procs.append(subprocess.Popen(
-                ["pw-play", "--target=" + sink, wav_path],
+                ["pw-play", "--target=" + target, wav_path],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
         return procs
 
     players = []
     virtual = find_virtual_output()
-    if virtual is not None:
-        players.append(_SdPlayer(wav_path, virtual[0]))
-    # To the default speakers (so you hear yourself) besides the virtual cable.
-    players.append(_SdPlayer(wav_path, None))
+    for salida in plan_salidas(False, virtual is not None, escuchar):
+        players.append(_SdPlayer(wav_path, virtual[0] if salida == "virtual"
+                                 else None))
     return players
 
 
