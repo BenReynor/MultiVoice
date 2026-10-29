@@ -17,10 +17,13 @@ from types import SimpleNamespace
 
 import customtkinter as ctk
 
+import medidor
 import temas
 import tts_engine
 from ajustes import ENGINES, AjustesMixin
 from biblioteca import LIB_TAB, BibliotecaMixin
+from cola import ColaVoz
+from panel_cola import ColaMixin
 import platform_utils as pu
 from virtualmic import setup_virtual_mic, teardown_virtual_mic
 
@@ -88,8 +91,12 @@ def save_config(cfg):
 class SpeechWorker:
     """Cola de síntesis y reproducción, con posibilidad de detener."""
 
-    def __init__(self, status_cb, on_clear=None, on_save=None):
-        # status_cb, on_clear, on_save must be scheduled via root.after
+    def __init__(self, status_cb, on_clear=None, on_save=None, on_change=None):
+        # status_cb, on_clear, on_save, on_change must be scheduled via root.after
+        self.cola = ColaVoz()
+        self.on_change = on_change
+        # cada trabajo encolado deja una ficha aquí; el trabajo real vive en
+        # self.cola (así se puede quitar un elemento que aún espera)
         self.q = queue.Queue()
         self.lock = threading.Lock()
         self.procs = []
@@ -109,7 +116,15 @@ class SpeechWorker:
                 break
             if self.stop_requested:
                 self.stop_requested = False
+                self.cola.vaciar()
+                self._changed()
                 continue
+            item = self.cola.avanzar()
+            if item is None:           # lo quitaron de la cola antes de tocarle
+                continue
+            job = item.job
+            completado = False
+            self._changed()
             self.busy = True
             self.status_cb("🔊 Hablando...")
             self.cancel_event.clear()
@@ -121,13 +136,16 @@ class SpeechWorker:
                                             tmp)
                 if self.stop_requested:
                     continue
+                duracion, niveles = medidor.envolvente(wav)
                 procs = tts_engine.play_wav(wav)
+                self.cola.iniciar_audio(duracion, niveles)
                 with self.lock:
                     self.procs = procs
                 self._wait_procs(procs)
                 with self.lock:
                     self.procs = []
                 if not self.stop_requested:
+                    completado = True
                     if job.get("clear_after") and self.on_clear:
                         self.on_clear(job.get("widget"))
                     if job.get("widget") is not None and self.on_save:
@@ -138,7 +156,13 @@ class SpeechWorker:
                     self.status_cb(f"⚠️ Error: {e}")
             finally:
                 shutil.rmtree(tmp_dir, ignore_errors=True)
+                self.cola.terminar(completado)
                 self.busy = False
+                self._changed()
+
+    def _changed(self):
+        if self.on_change:
+            self.on_change()
 
     def _wait_procs(self, procs):
         while any(p.poll() is None for p in procs):
@@ -152,11 +176,13 @@ class SpeechWorker:
 
     def enqueue(self, job):
         with self.lock:
-            active = self.busy or bool(self.procs) or not self.q.empty()
+            active = self.busy or bool(self.procs) or self.cola.hay_actividad()
         if active and not job.get("queue"):
             self.stop()
         self.stop_requested = False
-        self.q.put(job)
+        self.cola.encolar(job)
+        self.q.put(True)
+        self._changed()
 
     def stop(self):
         self.status_cb("⏹ Detenido")
@@ -174,9 +200,11 @@ class SpeechWorker:
                 self.q.get_nowait()
             except queue.Empty:
                 break
+        self.cola.vaciar()
+        self._changed()
 
 
-class TTSApp(AjustesMixin, BibliotecaMixin):
+class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin):
     def __init__(self, root):
         self.root = root
         self.cfg = load_config()
@@ -201,7 +229,8 @@ class TTSApp(AjustesMixin, BibliotecaMixin):
         self.worker = SpeechWorker(
             lambda msg: self.root.after(0, self.set_status, msg),
             on_clear=lambda w: self.root.after(0, self._safe_clear, w),
-            on_save=lambda job: self.root.after(0, self.maybe_auto_save, job))
+            on_save=lambda job: self.root.after(0, self.maybe_auto_save, job),
+            on_change=lambda: self.root.after(0, self._refresh_cola))
 
         self.style = ttk.Style()
         self.style.theme_use("clam")
@@ -288,8 +317,8 @@ class TTSApp(AjustesMixin, BibliotecaMixin):
     # ---------- UI ----------
     def _build_ui(self):
         self.root.title("MultiVoice")
-        self.root.geometry("820x720")
-        self.root.minsize(720, 620)
+        self.root.geometry("1120x720")
+        self.root.minsize(960, 620)
         r = self._px("--radius", 8)
         rl = self._px("--radius-lg", 12)
         h = self._px("--control-h", 36)
@@ -319,6 +348,17 @@ class TTSApp(AjustesMixin, BibliotecaMixin):
         self._reg(self.lbl_theme, lambda w: w.configure(
             text_color=self._col("--text-2")))
         self._reg(self.theme_menu, self._paint_menu)
+
+        # ---- Barra de estado ----
+        self.status = ctk.CTkLabel(self.root, text="", anchor="w",
+                                   corner_radius=0, height=26,
+                                   font=self.font(fs - 1))
+        self.status.pack(fill="x", side="bottom")
+        self._reg(self.status, lambda w: w.configure(
+            fg_color=self._col("--surface-2"), text_color=self._col("--text-2")))
+
+        # ---- Panel lateral: suena / cola / historial ----
+        self._build_cola_panel()
 
         # ---- Barra de motor y voz ----
         self.voice_card = ctk.CTkFrame(self.root, corner_radius=rl)
@@ -410,14 +450,6 @@ class TTSApp(AjustesMixin, BibliotecaMixin):
         self.btn_save = self._btn(actions, "💾 Guardar", self.save_audio,
                                   height=h + 16)
         self.btn_save.pack(side="left", padx=(8, 0))
-
-        # ---- Barra de estado ----
-        self.status = ctk.CTkLabel(self.root, text="", anchor="w",
-                                   corner_radius=0, height=26,
-                                   font=self.font(fs - 1))
-        self.status.pack(fill="x", side="bottom")
-        self._reg(self.status, lambda w: w.configure(
-            fg_color=self._col("--surface-2"), text_color=self._col("--text-2")))
         self._reg(self.hint, lambda w: self._paint_hint())
 
     def _slider_row(self, key, name, lo, hi):
@@ -579,6 +611,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin):
         for text in self.tab_texts.values():
             self._paint_text(text)
         self._style_library()
+        self._refresh_cola(forzar=True)
 
     # ---------- Sliders ----------
     def _on_slider(self, key, value):
@@ -866,6 +899,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin):
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
     def on_close(self):
+        self._stop_cola_timer()
         self._flush_config()
         self.worker.stop()
         self.worker.running = False

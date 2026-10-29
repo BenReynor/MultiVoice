@@ -1,6 +1,7 @@
 """Abre la ventana real un momento (necesita pantalla: Xvfb en Linux/CI)."""
 import json
 import os
+import queue
 import sys
 import tempfile
 
@@ -125,6 +126,33 @@ assert app._delete_library_entry(os.path.join(lib, "voz_1.mp3"))
 assert not os.path.exists(os.path.join(lib, "voz_1.mp3"))
 assert not os.path.exists(os.path.join(lib, "voz_1.mp3.json"))
 assert len(app.lib_entries) == 1
+# Panel lateral: cola, historial y medidor (sin sintetizar ni reproducir)
+cola = app.worker.cola
+app.worker.q = queue.Queue()         # el hilo sigue esperando en la cola vieja
+app.worker.enqueue(dict(app.build_job("Primer texto muy largo " * 10), queue=True))
+app.worker.enqueue(dict(app.build_job("Segundo texto"), queue=True))
+e2 = cola.instantanea()[1][-1]
+root.update()
+assert "En cola (2)" in app.lbl_cola.cget("text")
+assert len(app.cola_list.winfo_children()) == 2
+app._quitar_de_cola(e2.id)
+root.update()
+assert "En cola (1)" in app.lbl_cola.cget("text")
+cola.avanzar()
+cola.iniciar_audio(1.0, [0.8] * 30)
+app._refresh_cola()
+app._tick_cola()
+assert app.now_text.cget("text").endswith("…") and app.now_voice.cget("text")
+assert app._nivel_visible > 0, "el medidor no se mueve mientras suena"
+cola.terminar()
+app._refresh_cola()
+root.update()
+assert "Historial (1)" in app.lbl_hist.cget("text")
+app._repetir(cola.instantanea()[2][0].id)
+root.update()
+assert "En cola (1)" in app.lbl_cola.cget("text"), "repetir no encola"
+app.set_theme("minimal")             # el panel se repinta sin errores
+root.update()
 app._save_soon()
 app.on_close()
 assert os.path.isfile(mv.CONFIG_PATH), "config.json no se escribió"
