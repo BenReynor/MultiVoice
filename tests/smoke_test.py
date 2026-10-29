@@ -55,7 +55,7 @@ def check_virtual_device():
     try:
         import sounddevice  # noqa: F401
     except Exception as exc:
-        raise AssertionError(f"sounddevice not installed: {exc!r}")
+        raise AssertionError(f"sounddevice not installed: {exc!r}") from exc
     found = tts_engine.find_virtual_output()
     print(f"virtual device: {found[1] if found else 'none (fallback speakers)'}")
 

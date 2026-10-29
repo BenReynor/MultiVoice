@@ -5,3 +5,8 @@ config.json
 dist/
 build/
 *.spec
+.venv/
+
+
+# Dédalo: framework code and run state (never commit; the app recreates it)
+.dedalo/

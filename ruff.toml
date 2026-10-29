@@ -1,0 +1,5 @@
+line-length = 120
+extend-exclude = [".venv", "build", "dist", ".dedalo"]
+
+[lint]
+select = ["E", "F", "W", "B"]

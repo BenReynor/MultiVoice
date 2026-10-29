@@ -1086,7 +1086,7 @@ values=["edge", "gtts", "robot"])
                              activebackground=self.pal["bg"],
                              activeforeground=self.pal["fg"],
                              highlightthickness=0)
-        for name, text in self.tab_texts.items():
+        for text in self.tab_texts.values():
             text.configure(bg=self.pal["input"], fg=self.pal["fg"],
                            insertbackground=self.pal["fg"])
         for f in (self.cfg_frame, self.top):
