@@ -1,6 +1,66 @@
 #!/bin/bash
-# Launcher - Start MultiVoice (the app creates and removes the virtual mic)
-cd "$(dirname "$0")"
+# Launcher - Start MultiVoice (the app creates and removes the virtual mic).
+#
+# Runs from source with the project's own .venv, so the shortcut always opens
+# the current version. The .venv is created when missing and its dependencies
+# are re-synced whenever requirements.txt changes (uv if available, else pip),
+# with a waiting window meanwhile. The system python3 is not used directly: it
+# lacks the app's dependencies (customtkinter…).
+cd "$(dirname "$0")" || exit 1
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+
+VENV=".venv"
+PY="$VENV/bin/python"
+STAMP="$VENV/.requirements.sha1"
+LOG="${XDG_CACHE_HOME:-$HOME/.cache}/multivoice/instalar.log"
+mkdir -p "$(dirname "$LOG")"
+QUIERO="$(sha1sum requirements.txt | cut -d' ' -f1)"
+
+preparar() {
+    echo "== $(date '+%F %T') preparando el entorno"
+    if command -v uv >/dev/null 2>&1; then
+        if [ ! -x "$PY" ]; then
+            # The system Python ships Tk (python3-tk); uv's own builds may not.
+            if [ -x /usr/bin/python3 ]; then
+                uv venv --python /usr/bin/python3 "$VENV" || return 1
+            else
+                uv venv "$VENV" || return 1
+            fi
+        fi
+        uv pip install --python "$PY" -r requirements.txt || return 1
+    else
+        [ -x "$PY" ] || python3 -m venv "$VENV" || return 1
+        "$PY" -m pip install -r requirements.txt || return 1
+    fi
+    echo "$QUIERO" > "$STAMP"
+    echo "== listo"
+}
+
+hay_pantalla() {
+    command -v zenity >/dev/null 2>&1 && [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]
+}
+
+if [ ! -x "$PY" ] || [ "$(cat "$STAMP" 2>/dev/null)" != "$QUIERO" ]; then
+    RC_FILE="$(mktemp)"
+    if hay_pantalla; then
+        { preparar >>"$LOG" 2>&1; echo $? > "$RC_FILE"; echo 100; } |
+            zenity --progress --pulsate --auto-close --no-cancel --title=MultiVoice \
+                --width=420 --text="Preparando MultiVoice (dependencias)…\nSolo la primera vez o tras una actualización." 2>/dev/null
+    else
+        echo "🔧 Preparando el entorno de MultiVoice…"
+        preparar >>"$LOG" 2>&1; echo $? > "$RC_FILE"
+    fi
+    rc="$(cat "$RC_FILE")"; rm -f "$RC_FILE"
+    if [ "$rc" != "0" ]; then
+        msg="No se pudieron instalar las dependencias de MultiVoice. Detalle en $LOG"
+        if hay_pantalla; then
+            zenity --error --title=MultiVoice --text="$msg" 2>/dev/null
+        else
+            echo "$msg"
+        fi
+        exit 1
+    fi
+fi
 
 echo "🔊 Starting MultiVoice..."
-python3 multivoice.py "$@"
+exec "$PY" multivoice.py "$@"
