@@ -112,7 +112,7 @@ jobs:
           # Themes from the estilo-* skills, read at runtime via sys._MEIPASS
           ARGS+=(--add-data "assets/temas${SEP}assets/temas")
           case "$RUNNER_OS" in
-            Windows) ARGS+=(--icon assets/icon.ico --version-file packaging/version_info.txt --hidden-import sounddevice) ;;
+            Windows) ARGS+=(--icon assets/icon.ico --version-file packaging/version_info.txt --hidden-import sounddevice --hidden-import pynput.keyboard._win32 --hidden-import pynput.mouse._win32) ;;
           esac
           if [ -d bundle/bin ]; then
             ARGS+=(--add-data "bundle/bin${SEP}bin")

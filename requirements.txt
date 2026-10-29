@@ -3,3 +3,4 @@ gTTS>=2.5,<3
 imageio-ffmpeg>=0.5
 sounddevice>=0.4; sys_platform != "linux"
 customtkinter>=5.2
+pynput>=1.7; sys_platform == "win32"

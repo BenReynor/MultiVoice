@@ -47,8 +47,11 @@ Hablar y la gente escucha la voz elegida.
   `~/.claude/skills`): lo que haga falta de ellas ya está copiado en el repo
   (`assets/temas/*.css`). Las reglas de cada skill se leen cargando la skill.
 
-- Entorno: `.venv` creado con **uv** (ya está en el PATH del loop). Para
-  dependencias nuevas: añadirlas a `requirements.txt` y usar `uv pip install`.
+- Entorno: `.venv` creado con **uv** (ya está en el PATH del loop). El agente
+  no puede instalar paquetes: las dependencias ya están instaladas
+  (customtkinter, edge-tts, gTTS, imageio-ffmpeg, pytest, ruff). `pynput` está en
+  requirements.txt **solo para Windows** (atajo global): impórtalo de forma
+  perezosa dentro de la rama de Windows y que los tests no lo necesiten.
 - **Nunca** llamar de verdad a `setup_virtual_mic`/`pactl` ni reproducir audio en
   los tests: usar los dobles que ya usa `tests/gui_smoke.py`.
 - **Nunca** escribir en la configuración ni en la biblioteca reales del usuario
