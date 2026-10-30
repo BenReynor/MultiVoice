@@ -57,7 +57,7 @@ usan como voz). El cambio de idioma se aplica al reiniciar la app.
 - [x] Traducir Frases, Pronunciación, Soundboard y Biblioteca
   criterio: frases.py, pronunciacion.py, soundboard.py y biblioteca.py usan `t()` en pestañas, botones, cabeceras, diálogos, confirmaciones y mensajes; los datos del usuario y los de ejemplo guardados en config.json no cambian al cambiar de idioma; gui_smoke recorre esas vistas en los dos idiomas
 
-- [ ] Traducir mensajes y diálogos del sistema
+- [x] Traducir mensajes y diálogos del sistema
   criterio: los mensajes que ve el usuario desde tts_engine.py, virtualmic.py, library.py, instancia.py y platform_utils.py (errores, avisos de micrófono virtual o de VB-CABLE, títulos de diálogos de archivos y messagebox) usan `t()`; tests/smoke_test.py sigue pasando
 
 - [ ] Sin textos sueltos en español
