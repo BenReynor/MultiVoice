@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/icon.png" width="96" alt="MultiVoice icon">
+
 # MultiVoice
 
 **Turn text into speech and speak through a virtual microphone in Discord and other apps**
@@ -18,17 +20,30 @@ Type in the window, press **Speak** and your audience hears you with the voice y
 
 ## Screenshots
 
-The window is built with CustomTkinter and ships 10 selectable themes
-(default: Discord style).
+| Main window (Discord theme) | Quick phrases |
+|---|---|
+| ![Main window](docs/capturas/principal.png) | ![Quick phrases](docs/capturas/frases.png) |
+| **Audio library** | **Retro theme** (one of 10) |
+| ![Library](docs/capturas/biblioteca.png) | ![Retro theme](docs/capturas/tema_retro.png) |
 
-- TODO: screenshot of the main window (Discord theme)
-- TODO: screenshot of the Settings window with the theme picker
-- TODO: screenshot of the audio Library
+<p align="center"><img src="docs/capturas/ajustes.png" width="520" alt="Settings → Shortcuts"><br><em>Settings → Shortcuts, with the global “speak” shortcut</em></p>
 
-Packaged builds (PyInstaller) bundle CustomTkinter's data files
-(`--collect-all customtkinter`) and the themes (`--add-data assets/temas`).
-If you add a dependency with data files or a folder read at run time, add it to
-the "Build executable" step of `.github/workflows/build.yml` too.
+The interface is in Spanish.
+
+## What you can do
+
+- **Three TTS engines:** Microsoft Edge neural voices (14 Spanish voices, online), Google TTS (gTTS, online) and the local **robot sound** (espeak-ng, offline) that imitates SCP-079, with metal (distortion), speed, pitch and volume controls.
+- **Voice profiles:** save engine, voice, speed, pitch, volume and metal under a name (e.g. “SCP-079”, “Narrator”) and switch between them from the voice bar. Two sample profiles are included.
+- **Quick phrases:** buttons grouped in categories that speak a phrase with one click, with the active profile or their own. The first nine are on **Ctrl+1 … Ctrl+9**.
+- **Queue and history:** a side panel shows what is playing (with a progress bar and level meter), what is waiting in the queue (each item can be removed) and what you said this session (repeat with one click).
+- **Pronunciation dictionary:** replacements applied before speaking with any engine (e.g. `xd` → “equis de”), whole word or not, case-insensitive; can be turned off.
+- **Soundboard:** add your own audio files (mp3/wav/ogg), name them and play them through the virtual microphone, respecting the queue.
+- **Hear yourself:** the **Escucharme** switch also plays through your speakers what goes out through the virtual mic.
+- **Global shortcut to speak from any app:** `multivoice --decir` opens a small always-on-top box in the running app; type and press Enter. See [Global shortcut](#global-shortcut).
+- **Several text tabs**, optional auto-clear after speaking, and **save audio** to MP3 or WAV.
+- **Audio library:** with *Auto-save* on, every spoken text is saved with its text and voice; search, play, open the folder or delete. Files created by the app (`voz_*`) older than 30 days are deleted automatically; any other file in the folder is never touched.
+- **10 themes** (Discord by default, minimal, cyberpunk, warm, data, anime, manga, glass, retro, brutalist), with light/dark variants where available.
+- **Single instance:** opening it again brings the open window to the front instead of starting a second copy.
 
 ## Installation
 
@@ -43,59 +58,66 @@ Windows builds are provided on a best-effort basis. If something fails there, pl
 
 ### Option 1: pre-built binary (Linux and Windows)
 
-Download the file for your system from [Releases](https://github.com/BenReynor/MultiVoice/releases) (latest version: `v1.3.0`), unzip it and open it. There is one `.zip` per system:
+Download the file for your system from [Releases](https://github.com/BenReynor/MultiVoice/releases), unzip it and open it. There is one `.zip` per system:
 
 - `multivoice-linux-x86_64.zip` → Linux on Intel/AMD processors (most common)
 - `multivoice-linux-arm64.zip` → Linux on ARM (Raspberry Pi, many ARM boards)
 - `multivoice-windows-x64.zip` → Windows
 
-The `.zip` downloads to your browser's **Downloads** folder and, when unzipped, creates the `multivoice-<OS>` folder wherever you choose. Nothing is installed and no shortcuts are created: the executable runs from wherever you unzip it and you can move it anywhere.
+Nothing is installed and no shortcuts are created: the executable runs from wherever you unzip it.
 
 - **Linux:** make it executable and run it. It only needs `pactl`/`pw-play` (PipeWire) to create the virtual microphone; `ffmpeg` and `espeak-ng` are already bundled.
   ```bash
   chmod +x multivoice && ./multivoice
   ```
-- **Windows:** run it; if SmartScreen appears, *More info → Run anyway*.
+- **Windows:** run it; if SmartScreen shows “Windows protected your PC”, choose *More info → Run anyway* (the executable is not signed).
 
 The binary includes Python, the speech libraries, `ffmpeg` and `espeak-ng`. It does not include the virtual audio cable for Windows, which must be installed separately (see below).
 
-### Option 2: from source
+Every push to `main` also builds fresh binaries in GitHub Actions (workflow **Build**, artifacts per system), if you want the latest version before a release.
 
-Requires Python 3.8+ and the system packages `ffmpeg`, `espeak-ng` and `python3-tk`.
+### Option 2: from source (Linux)
 
-```bash
-git clone https://github.com/BenReynor/MultiVoice.git
-cd MultiVoice
-python3 -m pip install -r requirements.txt
-```
-
-To create the launcher (with the app icon) in the applications menu and on the desktop:
-
-```bash
-./install.sh
-```
-
-On Debian/Ubuntu, for the system dependencies:
+Requires Python 3.8+ with Tk and the system packages `ffmpeg` and `espeak-ng`. On Debian/Ubuntu:
 
 ```bash
 sudo apt install ffmpeg espeak-ng python3-tk
+git clone https://github.com/BenReynor/MultiVoice.git
+cd MultiVoice
+./install.sh     # launcher in the applications menu and on the desktop
+./start.sh       # or open it from the launcher
 ```
+
+`start.sh` creates the project's own `.venv` the first time (with [uv](https://docs.astral.sh/uv/) if installed, otherwise `venv` + `pip`) and installs `requirements.txt`; it re-syncs it whenever `requirements.txt` changes, showing a progress window meanwhile. The launcher created by `install.sh` finds the folder even if you move it within your home, and its icon updates together with the app.
+
+On Windows from source: `python -m pip install -r requirements.txt` and `python multivoice.py`.
 
 ## Quick start
-
-- **Downloaded binary:** open `multivoice` (Linux) or `multivoice.exe` (Windows).
-- **From source:**
-
-```bash
-./start.sh
-```
 
 On Linux the app creates the `🎤` virtual microphone when it opens and removes it when it closes. In the app where you want to speak, select it as the input device:
 
 - Discord: Settings → Voice & Video → Input device → `🎤`
 - Any other app that lets you choose a microphone works the same way.
 
-Type some text, press **🔊 Speak** and the voice is heard in your headphones and through the virtual mic.
+Type some text, press **🔊 Hablar** (or Enter) and the voice goes out through the virtual mic.
+
+## Global shortcut
+
+`multivoice --decir` asks the open MultiVoice to show a small always-on-top box: type, press Enter and it is spoken. To use it from any app, bind it to a key:
+
+- **Linux:** Wayland does not let apps register global shortcuts, so the system does it. *Ajustes → Atajos* shows the exact command and, on GNOME, a button that creates the shortcut for you (default `Ctrl+Alt+H`). On other desktops, add a custom shortcut that runs that command.
+- **Windows:** the app registers the shortcut itself (configurable in *Ajustes → Atajos*, default `Ctrl+Alt+H`).
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| Enter / Ctrl+Enter | Speak the current tab |
+| Ctrl+T | New tab |
+| Ctrl+W | Close tab |
+| Ctrl+1 … Ctrl+9 | Say quick phrase 1–9 |
+| F5 | Test the selected voice |
+| Esc | Close Settings and dialogs |
 
 ## Virtual microphone on Windows
 
@@ -104,41 +126,28 @@ There the app cannot create the microphone on its own: it needs a virtual audio 
 1. **Install the cable (once):** [VB-CABLE](https://vb-audio.com/Cable/) (installer, requires administrator permissions).
 2. **Choose the input in Discord:** Settings → Voice & Video → Input device → `CABLE Output`.
 
-### Hear yourself
-
-The virtual cable sends audio to Discord but not to your speakers; to hear yourself you need to duplicate the output:
-
-- In *Sound → Recording → CABLE Output → Properties → Listen* check **Listen to this device** and choose your speakers.
+To hear yourself, turn on **Escucharme** in the app (it also plays through your normal output).
 
 ### If something doesn't sound right
 
-- Leave the app open; on Windows it only plays while running.
-- On Windows, if Discord sounds too low, try `Discord → Settings → Voice & Video → Disable audio processing` and adjust the input volume.
+- Leave the app open; it only plays while running.
+- If Discord sounds too low, try *Discord → Settings → Voice & Video → Disable audio processing* and adjust the input volume.
 - If it doesn't detect the cable, the app plays through the speakers and warns you when it opens.
-
-> ⚠️ Verified on Linux only. On Windows the automated tests confirm the app builds and its window opens, but routing to VB-CABLE has **not** been tested on real hardware yet.
-
-## What you can do
-
-- **Three TTS engines:** Microsoft Edge neural voices (14 Spanish voices, online), Google TTS (gTTS, online) and the local robot sound (espeak-ng, offline).
-- **Robot sound:** simulates the robotic voice of SCP-079, with metal (distortion), speed, pitch and volume controls.
-- **Multiple tabs:** prepare several texts and play them in a queue, with optional auto-clear.
-- **Save audio:** export the voice to MP3 or WAV from the Save button.
-- **Audio library:** with *Auto-save* on, every spoken text is saved to the library tab (with its text and voice). Files created by the app (`voz_*`) older than 30 days are deleted automatically; any other file in the folder is never touched.
-
-## Keyboard shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| Ctrl+Enter | Speak the current tab |
-| Ctrl+T | New tab |
-| Ctrl+W | Close tab |
-| F5 | Test the selected voice |
 
 ## Notes
 
-- The `🎤` virtual mic only exists on Linux and while the app is open; if you want to choose it in Discord, keep the app open.
-- On Windows the app uses the VB-CABLE virtual cable if installed; otherwise it plays through the speakers.
-- Edge TTS and Google TTS need internet. The robot works offline and uses `espeak-ng`; it is bundled in the binaries (from source you need to have it installed).
+- The `🎤` virtual mic only exists on Linux and while the app is open.
+- Edge TTS and Google TTS need internet. The robot works offline and uses `espeak-ng`; it is bundled in the binaries (from source you need it installed).
 - **Privacy:** with Edge TTS and Google TTS the text you type is sent to Microsoft and Google respectively. The robot sound is fully local. With Auto-save, the text is also stored in plain text next to each audio file.
-- **Where things are saved:** the audio library goes to `~/MultiVoice_Audio` (Linux) or `Documents/MultiVoice_Audio` (Windows). The settings of the packaged app are stored in your user config folder (`%APPDATA%\MultiVoice` or `~/.config/MultiVoice`).
+- **Where things are saved:** the audio library goes to `~/MultiVoice_Audio` (Linux) or `Documents/MultiVoice_Audio` (Windows). Settings, profiles, quick phrases, the dictionary and the soundboard list are stored in `config.json`: in your user config folder for the packaged app (`~/.config/MultiVoice` or `%APPDATA%\MultiVoice`), next to `multivoice.py` when running from source.
+
+## Development
+
+```bash
+.venv/bin/ruff check .
+.venv/bin/python -m pytest -q
+.venv/bin/python tests/smoke_test.py            # TTS engines (no network)
+xvfb-run -a .venv/bin/python tests/gui_smoke.py # opens the real window headless
+```
+
+CI runs the same checks on Linux and Windows and builds the binaries (`.github/workflows/build.yml`). Packaged builds bundle CustomTkinter's data files (`--collect-all customtkinter`), the themes (`--add-data assets/temas`) and the icon; if you add a dependency with data files or a folder read at run time, add it to the “Build executable” step too. `CONTEXTO.md` explains the structure and the design decisions.
