@@ -71,10 +71,10 @@ def frases(cfg, categoria):
 def crear_categoria(cfg, nombre):
     nombre = (nombre or "").strip()
     if not nombre:
-        raise ValueError("La categoría necesita un nombre")
+        raise ValueError(t("The category needs a name"))
     cats = asegurar(cfg)
     if nombre in cats:
-        raise ValueError(f"Ya existe la categoría «{nombre}»")
+        raise ValueError(t("A category «{name}» already exists", name=nombre))
     cats[nombre] = []
     return nombre
 
@@ -85,9 +85,9 @@ def renombrar_categoria(cfg, viejo, nuevo):
     if viejo not in cats:
         raise KeyError(viejo)
     if not nuevo:
-        raise ValueError("La categoría necesita un nombre")
+        raise ValueError(t("The category needs a name"))
     if nuevo != viejo and nuevo in cats:
-        raise ValueError(f"Ya existe la categoría «{nuevo}»")
+        raise ValueError(t("A category «{name}» already exists", name=nuevo))
     cfg["phrases"] = {(nuevo if c == viejo else c): f for c, f in cats.items()}
     return nuevo
 
@@ -101,7 +101,7 @@ def agregar(cfg, categoria, texto, perfil=""):
     """Añade una frase al final (crea la categoría si no existe)."""
     f = _frase({"text": texto, "profile": perfil})
     if not f["text"]:
-        raise ValueError("La frase no puede estar vacía")
+        raise ValueError(t("The phrase cannot be empty"))
     categoria = (categoria or "").strip() or CATEGORIA_NUEVA
     asegurar(cfg).setdefault(categoria, []).append(f)
     return f
@@ -114,7 +114,7 @@ def editar(cfg, categoria, indice, texto=None, perfil=None):
     if texto is not None:
         texto = texto.strip()
         if not texto:
-            raise ValueError("La frase no puede estar vacía")
+            raise ValueError(t("The phrase cannot be empty"))
         lista[indice]["text"] = texto
     if perfil is not None:
         lista[indice]["profile"] = perfil
@@ -137,7 +137,7 @@ def mover(cfg, origen, indice, destino):
         raise KeyError((origen, indice))
     destino = (destino or "").strip()
     if not destino:
-        raise ValueError("La categoría necesita un nombre")
+        raise ValueError(t("The category needs a name"))
     f = lista.pop(indice)
     cats.setdefault(destino, []).append(f)
     return f
@@ -197,11 +197,11 @@ class FrasesMixin:
         self.frases_tab = self.tabview.add(tab_frases())
         barra = ctk.CTkFrame(self.frases_tab, fg_color="transparent")
         barra.pack(fill="x", padx=4, pady=(2, 6))
-        self._btn(barra, "＋ Frase", lambda: self.frase_dialogo()).pack(
+        self._btn(barra, t("＋ Phrase"), lambda: self.frase_dialogo()).pack(
             side="left", padx=(0, 6))
-        self._btn(barra, "＋ Categoría", self.categoria_nueva).pack(side="left")
+        self._btn(barra, t("＋ Category"), self.categoria_nueva).pack(side="left")
         self.frases_hint = ctk.CTkLabel(
-            barra, text="Ctrl+1…9 dicen las nueve primeras", anchor="e",
+            barra, text=t("Ctrl+1…9 say the first nine"), anchor="e",
             font=self.font())
         self.frases_hint.pack(side="right", padx=8)
         self._reg(self.frases_hint, lambda w: w.configure(
@@ -223,7 +223,7 @@ class FrasesMixin:
         if not cats:
             ctk.CTkLabel(
                 self.frases_list, font=self.font(), text_color=c("--text-3"),
-                text="No hay frases. Crea una categoría o pulsa «＋ Frase»."
+                text=t("No phrases. Create a category or press «＋ Phrase».")
             ).pack(pady=24)
             return
         numero = {(cat, i): n for n, cat, i, _ in numeradas(self.cfg)}
@@ -239,7 +239,7 @@ class FrasesMixin:
                 b.configure(width=h - 4)
                 b.pack(side="right", padx=(4, 0))
             if not lista:
-                ctk.CTkLabel(self.frases_list, text="Categoría vacía",
+                ctk.CTkLabel(self.frases_list, text=t("Empty category"),
                              font=self.font(), text_color=c("--text-3"),
                              anchor="w").pack(fill="x", padx=8)
             for i, f in enumerate(lista):
@@ -269,7 +269,7 @@ class FrasesMixin:
     def decir_numero(self, n):
         f = frase_numero(self.cfg, n)
         if f is None:
-            self.set_status(f"⚠️ No hay frase para Ctrl+{n}")
+            self.set_status(t("⚠️ No phrase for Ctrl+{n}", n=n))
             return False
         return self._decir(f)
 
@@ -292,10 +292,11 @@ class FrasesMixin:
 
     def frase_borrar(self, categoria, indice):
         if borrar(self.cfg, categoria, indice):
-            self._frases_guardar("⚡ Frase borrada")
+            self._frases_guardar(t("⚡ Phrase deleted"))
 
     def categoria_nueva(self):
-        nombre = self._pedir_nombre("Nueva categoría", "Nombre de la categoría:")
+        nombre = self._pedir_nombre(t("New category"),
+                                 t("Category name:"))
         if not nombre:
             return
         try:
@@ -303,10 +304,11 @@ class FrasesMixin:
         except ValueError as exc:
             self.set_status(f"⚠ {exc}")
             return
-        self._frases_guardar(f"⚡ Categoría «{nombre}» creada")
+        self._frases_guardar(t("⚡ Category «{name}» created", name=nombre))
 
     def categoria_renombrar(self, viejo):
-        nuevo = self._pedir_nombre("Renombrar categoría", "Nuevo nombre:", viejo)
+        nuevo = self._pedir_nombre(t("Rename category"), t("New name:"),
+                                  viejo)
         if not nuevo or nuevo == viejo:
             return
         try:
@@ -314,16 +316,16 @@ class FrasesMixin:
         except ValueError as exc:
             self.set_status(f"⚠ {exc}")
             return
-        self._frases_guardar(f"⚡ Categoría renombrada a «{nuevo}»")
+        self._frases_guardar(t("⚡ Category renamed to «{name}»", name=nuevo))
 
     def categoria_borrar(self, categoria):
         n = len(frases(self.cfg, categoria))
         if n and not self.confirmar(
-                "Borrar categoría",
-                f"¿Borrar «{categoria}» y sus {n} frases?"):
+                t("Delete category"),
+                t("Delete «{name}» and its {n} phrases?", name=categoria, n=n)):
             return
         if borrar_categoria(self.cfg, categoria):
-            self._frases_guardar(f"⚡ Categoría «{categoria}» borrada")
+            self._frases_guardar(t("⚡ Category «{name}» deleted", name=categoria))
 
     def frase_dialogo(self, categoria=None, indice=None):
         """Ventana para crear (indice None) o editar una frase: texto,
@@ -334,7 +336,7 @@ class FrasesMixin:
             {"text": "", "profile": ""}
         cats = categorias(self.cfg) or [CATEGORIA_NUEVA]
         dlg = ctk.CTkToplevel(self.root)
-        dlg.title("Editar frase" if editando else "Nueva frase")
+        dlg.title(t("Edit phrase") if editando else t("New phrase"))
         dlg.transient(self.root)
         dlg.configure(fg_color=self._col("--bg"))
         marco = ctk.CTkFrame(dlg, fg_color="transparent")
@@ -346,19 +348,19 @@ class FrasesMixin:
                          text_color=self._col("--text")).pack(fill="x",
                                                               pady=(8, 2))
 
-        campo("Frase")
+        campo(t("Phrase"))
         texto = ctk.CTkEntry(marco, width=360, height=h, font=self.font())
         texto.insert(0, actual["text"])
         texto.pack(fill="x")
         self._paint_entry(texto)
-        campo("Categoría")
+        campo(t("Category"))
         cat = ctk.CTkComboBox(marco, values=cats, height=h, font=self.font(),
                               dropdown_font=self.font())
         cat.set(categoria or cats[0])
         cat.pack(fill="x")
         self._paint_menu(cat)
-        campo("Voz de la frase")
-        sin = "— Perfil activo —"
+        campo(t("Phrase voice"))
+        sin = t("— Active profile —")
         perf = ctk.CTkOptionMenu(
             marco, values=[sin] + perfiles.nombres(self.cfg), height=h,
             font=self.font(), dropdown_font=self.font())
@@ -384,12 +386,12 @@ class FrasesMixin:
                 error.configure(text=str(exc))
                 return
             dlg.destroy()
-            self._frases_guardar("⚡ Frase guardada")
+            self._frases_guardar(t("⚡ Phrase saved"))
 
         botones = ctk.CTkFrame(marco, fg_color="transparent")
         botones.pack(fill="x", pady=(10, 0))
-        self._btn(botones, "Guardar", aceptar, accent=True).pack(side="right")
-        self._btn(botones, "Cancelar", dlg.destroy).pack(side="right",
+        self._btn(botones, t("Save"), aceptar, accent=True).pack(side="right")
+        self._btn(botones, t("Cancel"), dlg.destroy).pack(side="right",
                                                          padx=(0, 6))
         dlg.bind("<Escape>", lambda e: dlg.destroy())
         dlg.bind("<Return>", lambda e: aceptar())

@@ -203,6 +203,135 @@ _ES = {
     "Language / Idioma": "Idioma / Language",
     "The language changes when you restart MultiVoice.":
         "El idioma cambia al reiniciar MultiVoice.",
+    # Frases, Pronunciación, Soundboard y Biblioteca
+    'The category needs a name':
+        'La categoría necesita un nombre',
+    'A category «{name}» already exists':
+        'Ya existe la categoría «{name}»',
+    'The phrase cannot be empty':
+        'La frase no puede estar vacía',
+    '＋ Phrase':
+        '＋ Frase',
+    '＋ Category':
+        '＋ Categoría',
+    'Ctrl+1…9 say the first nine':
+        'Ctrl+1…9 dicen las nueve primeras',
+    'No phrases. Create a category or press «＋ Phrase».':
+        'No hay frases. Crea una categoría o pulsa «＋ Frase».',
+    'Empty category':
+        'Categoría vacía',
+    '⚠️ No phrase for Ctrl+{n}':
+        '⚠️ No hay frase para Ctrl+{n}',
+    '⚡ Phrase deleted':
+        '⚡ Frase borrada',
+    'New category':
+        'Nueva categoría',
+    'Category name:':
+        'Nombre de la categoría:',
+    '⚡ Category «{name}» created':
+        '⚡ Categoría «{name}» creada',
+    'Rename category':
+        'Renombrar categoría',
+    '⚡ Category renamed to «{name}»':
+        '⚡ Categoría renombrada a «{name}»',
+    'Delete category':
+        'Borrar categoría',
+    'Delete «{name}» and its {n} phrases?':
+        '¿Borrar «{name}» y sus {n} frases?',
+    '⚡ Category «{name}» deleted':
+        '⚡ Categoría «{name}» borrada',
+    'Edit phrase':
+        'Editar frase',
+    'New phrase':
+        'Nueva frase',
+    'Phrase':
+        'Frase',
+    'Category':
+        'Categoría',
+    'Phrase voice':
+        'Voz de la frase',
+    '— Active profile —':
+        '— Perfil activo —',
+    '⚡ Phrase saved':
+        '⚡ Frase guardada',
+    'The text to replace cannot be empty':
+        'El texto a reemplazar no puede estar vacío',
+    'Use dictionary':
+        'Usar diccionario',
+    '＋ Rule':
+        '＋ Regla',
+    'No rules. Press «＋ Rule».':
+        'Sin reglas. Pulsa «＋ Regla».',
+    'Whole word':
+        'Palabra completa',
+    '🗣 Dictionary on':
+        '🗣 Diccionario activado',
+    '🗣 Dictionary off':
+        '🗣 Diccionario desactivado',
+    'Unsupported format (use mp3, wav or ogg)':
+        'Formato no soportado (usa mp3, wav u ogg)',
+    'ffmpeg could not convert the file':
+        'ffmpeg no pudo convertir el archivo',
+    'The sound needs a name':
+        'El sonido necesita un nombre',
+    'The sound file is missing':
+        'Falta el archivo del sonido',
+    '＋ Add sound':
+        '＋ Añadir sonido',
+    'No sounds. Press «＋ Add sound» (mp3, wav or ogg).':
+        'Sin sonidos. Pulsa «＋ Añadir sonido» (mp3, wav u ogg).',
+    'Add sounds':
+        'Añadir sonidos',
+    'All files':
+        'Todos los archivos',
+    '🎵 Sound added':
+        '🎵 Sonido añadido',
+    'Rename sound':
+        'Renombrar sonido',
+    '⚠ The file for that sound is missing':
+        '⚠ Falta el archivo de ese sonido',
+    '🔍 Search by text or voice…':
+        '🔍 Buscar por texto o voz…',
+    '🔄 Refresh':
+        '🔄 Actualizar',
+    '📂 Open folder':
+        '📂 Abrir carpeta',
+    '{n} audios for «{query}»':
+        '{n} audios para «{query}»',
+    '{n} audio':
+        '{n} audio',
+    '{n} audios':
+        '{n} audios',
+    'Nothing matches the search.':
+        'Nada coincide con la búsqueda.',
+    'No audios yet. Turn on «Auto-save» or press Save to fill the library.':
+        'Aún no hay audios. Activa «Guardado automático» o pulsa Guardar para llenar la biblioteca.',
+    'The library folder does not exist yet.':
+        'La carpeta de la biblioteca todavía no existe.',
+    'Showing the {n} most recent; use search to narrow down.':
+        'Se muestran los {n} más recientes; usa la búsqueda para afinar.',
+    'unknown voice':
+        'voz desconocida',
+    '🗑 Delete':
+        '🗑 Borrar',
+    '▶ Play':
+        '▶ Reproducir',
+    '▶ Playing {name}':
+        '▶ Reproduciendo {name}',
+    '⚠️ Could not play: {error}':
+        '⚠️ No se pudo reproducir: {error}',
+    'Delete this audio?':
+        '¿Borrar este audio?',
+    '«{name}» will be deleted from the library. This cannot be undone.':
+        'Se borrará «{name}» de la biblioteca. No se puede deshacer.',
+    '⚠️ Could not delete: {error}':
+        '⚠️ No se pudo borrar: {error}',
+    '🗑️ Deleted {name}':
+        '🗑️ Borrado {name}',
+    '⚠️ Could not open the folder: {error}':
+        '⚠️ No se pudo abrir la carpeta: {error}',
+    '🧹 Automatic cleanup: {n} old file(s) removed':
+        '🧹 Limpieza automática: {n} archivo(s) antiguos eliminados',
 }
 
 

@@ -95,7 +95,7 @@ def aplicar_cfg(texto, cfg):
 def agregar(cfg, texto, dice, completa=True):
     r = _regla({"text": texto, "say": dice, "whole": completa})
     if not r["text"]:
-        raise ValueError("El texto a reemplazar no puede estar vacío")
+        raise ValueError(t("The text to replace cannot be empty"))
     reglas(cfg).append(r)
     return r
 
@@ -107,7 +107,7 @@ def editar(cfg, indice, texto=None, dice=None, completa=None):
     r = lista[indice]
     if texto is not None:
         if not texto.strip():
-            raise ValueError("El texto a reemplazar no puede estar vacío")
+            raise ValueError(t("The text to replace cannot be empty"))
         r["text"] = texto.strip()
     if dice is not None:
         r["say"] = dice.strip()
@@ -133,7 +133,7 @@ class PronunciacionMixin:
         barra.pack(fill="x", padx=4, pady=(2, 6))
         self.pron_var = ctk.BooleanVar(value=activo(self.cfg))
         self.pron_switch = ctk.CTkSwitch(
-            barra, text="Usar diccionario", variable=self.pron_var,
+            barra, text=t("Use dictionary"), variable=self.pron_var,
             command=self._pron_alternar, font=self.font())
         self.pron_switch.pack(side="left", padx=(0, 10))
         self._reg(self.pron_switch, lambda w: w.configure(
@@ -142,7 +142,7 @@ class PronunciacionMixin:
             button_hover_color=self._col("--text-2"),
             fg_color=self._col("--border-strong"),
             text_color=self._col("--text")))
-        self._btn(barra, "＋ Regla", self._pron_agregar).pack(side="left")
+        self._btn(barra, t("＋ Rule"), self._pron_agregar).pack(side="left")
         self.pron_lista = ctk.CTkScrollableFrame(self.pron_tab, corner_radius=8)
         self.pron_lista.pack(fill="both", expand=True, padx=4, pady=(0, 4))
         self._reg(self.pron_lista, lambda w: w.configure(
@@ -160,7 +160,7 @@ class PronunciacionMixin:
         if not reglas(self.cfg):
             ctk.CTkLabel(self.pron_lista, font=self.font(),
                          text_color=c("--text-3"),
-                         text="Sin reglas. Pulsa «＋ Regla».").pack(pady=24)
+                         text=t("No rules. Press «＋ Rule».")).pack(pady=24)
             return
         for i, r in enumerate(reglas(self.cfg)):
             fila = ctk.CTkFrame(self.pron_lista, fg_color="transparent")
@@ -177,7 +177,7 @@ class PronunciacionMixin:
             self._paint_entry(dice)
             completa = ctk.BooleanVar(value=r["whole"])
             cb = ctk.CTkCheckBox(
-                fila, text="Palabra completa", variable=completa,
+                fila, text=t("Whole word"), variable=completa,
                 font=self.font(),
                 command=lambda j=i, v=completa: self._pron_guardar(
                     j, completa=v.get()))
@@ -187,15 +187,15 @@ class PronunciacionMixin:
             b.configure(width=h)
             b.pack(side="right")
             for campo in (texto, dice):
-                campo.bind("<FocusOut>", lambda e, j=i, t=texto, d=dice:
-                           self._pron_guardar(j, texto=t.get(), dice=d.get()))
+                campo.bind("<FocusOut>", lambda e, j=i, x=texto, d=dice:
+                           self._pron_guardar(j, texto=x.get(), dice=d.get()))
             self.pron_filas.append((texto, dice, completa))
 
     def _pron_alternar(self):
         activar(self.cfg, self.pron_var.get())
         self._save_soon()
-        self.set_status("🗣 Diccionario " + ("activado" if self.pron_var.get()
-                                             else "desactivado"))
+        self.set_status(t("🗣 Dictionary on") if self.pron_var.get()
+                        else t("🗣 Dictionary off"))
 
     def _pron_guardar(self, indice, **campos):
         try:

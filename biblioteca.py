@@ -34,13 +34,13 @@ class BibliotecaMixin:
         self.lib_search = ctk.CTkEntry(
             barra, textvariable=self.lib_search_var, height=self._px(
                 "--control-h", 36), font=self.font(),
-            placeholder_text="🔍 Buscar por texto o voz…")
+            placeholder_text=t("🔍 Search by text or voice…"))
         self.lib_search.pack(side="left", fill="x", expand=True, padx=(0, 6))
         self.lib_search_var.trace_add("write", lambda *a: self._refresh_library())
         self._reg(self.lib_search, self._paint_entry)
-        self._btn(barra, "🔄 Actualizar", self._refresh_library).pack(
+        self._btn(barra, t("🔄 Refresh"), self._refresh_library).pack(
             side="left", padx=(0, 6))
-        self._btn(barra, "📂 Abrir carpeta", self._open_library_folder).pack(
+        self._btn(barra, t("📂 Open folder"), self._open_library_folder).pack(
             side="left")
 
         self.lib_count = ctk.CTkLabel(self.lib_tab, text="", anchor="w",
@@ -79,14 +79,16 @@ class BibliotecaMixin:
         self.lib_entries = entries
         total = len(entries)
         self.lib_count.configure(
-            text=f"{total} audio{'s' if total != 1 else ''}"
-                 + (f" para «{query.strip()}»" if query.strip() else ""))
+            text=(t("{n} audios for «{query}»", n=total, query=query.strip())
+                  if query.strip() else
+                  t("{n} audio", n=total) if total == 1 else
+                  t("{n} audios", n=total)))
         if not entries:
-            msg = ("Nada coincide con la búsqueda." if query.strip() else
-                   "Aún no hay audios. Activa «Guardado automático» o pulsa "
-                   "Guardar para llenar la biblioteca.")
+            msg = (t("Nothing matches the search.") if query.strip() else
+                   t("No audios yet. Turn on «Auto-save» or press Save to "
+                     "fill the library."))
             if not os.path.isdir(lib_dir) and not query.strip():
-                msg = "La carpeta de la biblioteca todavía no existe. " + msg
+                msg = t("The library folder does not exist yet.") + " " + msg
             ctk.CTkLabel(self.lib_list, text=msg, wraplength=560,
                          font=self.font(), text_color=c("--text-2"),
                          justify="center").pack(pady=40, padx=20)
@@ -95,8 +97,8 @@ class BibliotecaMixin:
             self._lib_row(e)
         if total > MAX_FILAS:
             ctk.CTkLabel(self.lib_list, font=self.font(),
-                         text=f"Se muestran los {MAX_FILAS} más recientes; "
-                              "usa la búsqueda para afinar.",
+                         text=t("Showing the {n} most recent; use search to narrow "
+                                "down.", n=MAX_FILAS),
                          text_color=c("--text-3")).pack(pady=8)
 
     def _lib_row(self, e):
@@ -112,18 +114,18 @@ class BibliotecaMixin:
         ctk.CTkLabel(izq, text=texto, anchor="w", font=self.font(),
                      text_color=c("--text")).pack(fill="x")
         fecha = datetime.fromtimestamp(e["mtime"]).strftime("%d/%m/%Y %H:%M")
-        voz = e["voice"] or e["engine"] or "voz desconocida"
+        voz = e["voice"] or e["engine"] or t("unknown voice")
         ctk.CTkLabel(izq, anchor="w", text=f"{voz}  ·  {fecha}  ·  "
                      f"{fmt_size(e['size'])}",
                      font=self.font(self._px("--fs-sm", 12)),
                      text_color=c("--text-3")).pack(fill="x")
-        borrar = ctk.CTkButton(fila, text="🗑 Borrar", width=84,
+        borrar = ctk.CTkButton(fila, text=t("🗑 Delete"), width=84,
                                height=self._px("--control-h", 36) - 4,
                                font=self.font(),
                                command=lambda p=e["path"]: self._delete_library_entry(p))
         self._paint_button(borrar, False)
         borrar.pack(side="right", padx=(0, 10))
-        play = ctk.CTkButton(fila, text="▶ Reproducir", width=104,
+        play = ctk.CTkButton(fila, text=t("▶ Play"), width=104,
                              height=self._px("--control-h", 36) - 4,
                              font=self.font(),
                              command=lambda p=e["path"]: self._play_library_path(p))
@@ -140,25 +142,25 @@ class BibliotecaMixin:
         """Abre el audio con el reproductor del sistema."""
         try:
             self._open_path(path)
-            self.set_status(f"▶ Reproduciendo {os.path.basename(path)}")
+            self.set_status(t("▶ Playing {name}", name=os.path.basename(path)))
         except Exception as exc:
-            self.set_status(f"⚠️ No se pudo reproducir: {exc}")
+            self.set_status(t("⚠️ Could not play: {error}", error=exc))
 
     def _delete_library_entry(self, path):
         """Borra un audio tras pedir confirmación."""
         nombre = os.path.basename(path)
         if not self.confirmar(
-                "¿Borrar este audio?",
-                f"Se borrará «{nombre}» de la biblioteca. "
-                "No se puede deshacer."):
+                t("Delete this audio?"),
+                t("«{name}» will be deleted from the library. "
+                  "This cannot be undone.", name=nombre)):
             return False
         try:
             delete_entry(path)
         except OSError as exc:
-            self.set_status(f"⚠️ No se pudo borrar: {exc}")
+            self.set_status(t("⚠️ Could not delete: {error}", error=exc))
             return False
         self._refresh_library()
-        self.set_status(f"🗑️ Borrado {nombre}")
+        self.set_status(t("🗑️ Deleted {name}", name=nombre))
         return True
 
     def _open_library_folder(self):
@@ -167,11 +169,11 @@ class BibliotecaMixin:
             os.makedirs(lib_dir, exist_ok=True)
             self._open_path(lib_dir)
         except Exception as exc:
-            self.set_status(f"⚠️ No se pudo abrir la carpeta: {exc}")
+            self.set_status(t("⚠️ Could not open the folder: {error}", error=exc))
 
     def _cleanup_library(self):
         """Borra los audios de la app con más de 30 días (nada más)."""
         deleted = cleanup_library(self._get_library_dir(), days=30)
         if deleted:
             self.set_status(
-                f"🧹 Limpieza automática: {deleted} archivo(s) antiguos eliminados")
+                t("🧹 Automatic cleanup: {n} old file(s) removed", n=deleted))

@@ -45,7 +45,7 @@ def convertir(origen, destino_dir, run=None, ffmpeg=None):
     Devuelve el nombre del WAV creado dentro de `destino_dir`. `run` y `ffmpeg`
     se pueden sustituir en los tests."""
     if not es_soportado(origen):
-        raise ValueError("Formato no soportado (usa mp3, wav u ogg)")
+        raise ValueError(t("Unsupported format (use mp3, wav or ogg)"))
     if not os.path.isfile(origen):
         raise FileNotFoundError(origen)
     os.makedirs(destino_dir, exist_ok=True)
@@ -55,7 +55,7 @@ def convertir(origen, destino_dir, run=None, ffmpeg=None):
     r = run([ffmpeg or tts_engine.ffmpeg_bin(), "-y", "-i", origen, "-vn",
              "-ar", str(tts_engine.SAMPLE_RATE), "-ac", "2", destino])
     if getattr(r, "returncode", 0) != 0 or not os.path.isfile(destino):
-        raise RuntimeError("ffmpeg no pudo convertir el archivo")
+        raise RuntimeError(t("ffmpeg could not convert the file"))
     return nombre
 
 
@@ -81,9 +81,9 @@ def sonidos(cfg):
 def agregar(cfg, nombre, archivo):
     s = _sonido({"name": nombre, "file": archivo})
     if not s["name"]:
-        raise ValueError("El sonido necesita un nombre")
+        raise ValueError(t("The sound needs a name"))
     if not s["file"]:
-        raise ValueError("Falta el archivo del sonido")
+        raise ValueError(t("The sound file is missing"))
     sonidos(cfg).append(s)
     return s
 
@@ -93,7 +93,7 @@ def renombrar(cfg, indice, nombre):
     if not 0 <= indice < len(lista):
         raise KeyError(indice)
     if not nombre.strip():
-        raise ValueError("El sonido necesita un nombre")
+        raise ValueError(t("The sound needs a name"))
     lista[indice]["name"] = nombre.strip()
     return lista[indice]
 
@@ -136,7 +136,7 @@ class SoundboardMixin:
         self.sb_tab = self.tabview.add(tab_soundboard())
         barra = ctk.CTkFrame(self.sb_tab, fg_color="transparent")
         barra.pack(fill="x", padx=4, pady=(2, 6))
-        self._btn(barra, "＋ Añadir sonido", self.sb_anadir).pack(side="left")
+        self._btn(barra, t("＋ Add sound"), self.sb_anadir).pack(side="left")
         self.sb_lista = ctk.CTkScrollableFrame(self.sb_tab, corner_radius=8)
         self.sb_lista.pack(fill="both", expand=True, padx=4, pady=(0, 4))
         self._reg(self.sb_lista, lambda w: w.configure(
@@ -157,8 +157,8 @@ class SoundboardMixin:
         if not lista:
             ctk.CTkLabel(self.sb_lista, font=self.font(),
                          text_color=c("--text-3"),
-                         text="Sin sonidos. Pulsa «＋ Añadir sonido» "
-                              "(mp3, wav u ogg).").pack(pady=24)
+                         text=t("No sounds. Press «＋ Add sound» "
+                                "(mp3, wav or ogg).")).pack(pady=24)
             return
         h = self._px("--control-h", 36)
         for i, s in enumerate(lista):
@@ -176,8 +176,9 @@ class SoundboardMixin:
 
     def sb_anadir(self):
         rutas = filedialog.askopenfilenames(
-            title="Añadir sonidos",
-            filetypes=[("Audio", "*.mp3 *.wav *.ogg"), ("Todos", "*.*")])
+            title=t("Add sounds"),
+            filetypes=[(t("Audio"), "*.mp3 *.wav *.ogg"),
+                       (t("All files"), "*.*")])
         for ruta in rutas:
             self.sb_anadir_archivo(ruta)
 
@@ -191,11 +192,12 @@ class SoundboardMixin:
             return False
         self._save_soon()
         self._refresh_soundboard()
-        self.set_status("🎵 Sonido añadido")
+        self.set_status(t("🎵 Sound added"))
         return True
 
     def sb_renombrar(self, indice):
-        dlg = ctk.CTkInputDialog(text="Nuevo nombre:", title="Renombrar sonido")
+        dlg = ctk.CTkInputDialog(text=t("New name:"),
+                                 title=t("Rename sound"))
         nombre = dlg.get_input()
         if nombre is None:
             return
@@ -218,7 +220,7 @@ class SoundboardMixin:
             return False
         ruta = ruta_sonido(self._sb_dir(), lista[indice])
         if not ruta or not os.path.isfile(ruta):
-            self.set_status("⚠ Falta el archivo de ese sonido")
+            self.set_status(t("⚠ The file for that sound is missing"))
             return False
         job = job_sonido(lista[indice], ruta)
         job["queue"] = self.queue_var.get()

@@ -151,9 +151,13 @@ app.lib_search_var.set("robot")
 root.update()
 assert [e["name"] for e in app.lib_entries] == ["voz_2.wav"]
 app.lib_search_var.set("zzz")
-assert app.lib_entries == [] and "Nada coincide" in str(
+assert app.lib_entries == [] and t("Nothing matches the search.") in str(
     [w.cget("text") for w in app.lib_list.winfo_children()])
+assert app.lib_search.cget("placeholder_text") == t("🔍 Search by text or voice…")
+assert app.lib_count.cget("text") == t("{n} audios for «{query}»", n=0, query="zzz")
 app.lib_search_var.set("")
+root.update()
+assert app.lib_count.cget("text") == t("{n} audios", n=2)
 abiertos = []
 app._open_path = abiertos.append
 app._play_library_path(os.path.join(lib, "voz_1.mp3"))
@@ -216,6 +220,10 @@ app.tabview.set(frases.tab_frases())
 app.on_tab_changed()
 root.update()
 assert frases.categorias(app.cfg) == ["Saludos", "Reacciones"]
+# los datos de ejemplo no se traducen al cambiar de idioma
+assert frases.frases(app.cfg, "Saludos")[0]["text"] == "Hola a todos"
+assert app.tabview.get() == t("⚡ Phrases") == frases.tab_frases()
+assert app.frases_hint.cget("text") == t("Ctrl+1…9 say the first nine")
 assert app.decir_frase("Saludos", 0)
 assert dichas[-1]["text"] == "Hola a todos"
 frases.editar(app.cfg, "Saludos", 1, perfil="SCP-079")
@@ -235,10 +243,26 @@ texto, cat, perf, sin = app._frase_dialogo_campos
 cat.set("Saludos")
 app._frase_dialogo_aceptar()
 assert frases.frases(app.cfg, "Chistes") == []
-app.confirmar = lambda *a, **k: True
+pedidas = []
+app.confirmar = lambda *a, **k: pedidas.append(a) or True
+frases.agregar(app.cfg, "Chistes", "uno")
 app.categoria_borrar("Chistes")
+assert pedidas[0][0] == t("Delete category"), pedidas
 assert "Chistes" not in app.cfg["phrases"]
 root.update()
+# Pronunciación: pestaña, interruptor y reglas de ejemplo intactas
+import pronunciacion  # noqa: E402
+app.tabview.set(pronunciacion.tab_pronunciacion())
+app.on_tab_changed()
+root.update()
+assert app.pron_switch.cget("text") == t("Use dictionary")
+assert pronunciacion.reglas(app.cfg)[0]["say"] == "equis de"
+app._pron_alternar()
+assert app.status.cget("text").strip() in (t("🗣 Dictionary on"),
+                                           t("🗣 Dictionary off"))
+app._pron_agregar()
+assert pronunciacion.reglas(app.cfg)[-1]["say"] == "cómo se dice"
+app._pron_borrar(len(pronunciacion.reglas(app.cfg)) - 1)
 # Soundboard: añadir (con ffmpeg falso), listar y encolar sin reproducir
 import types  # noqa: E402
 import soundboard  # noqa: E402
@@ -256,6 +280,11 @@ open(origen, "wb").close()
 assert app.sb_anadir_archivo(origen)
 soundboard.tts_engine._run = orig_run
 assert [s["name"] for s in soundboard.sonidos(app.cfg)] == ["risa"]
+app.tabview.set(soundboard.tab_soundboard())
+app.on_tab_changed()
+root.update()
+assert not app.sb_anadir_archivo(os.path.join(tmp, "nota.txt"))
+assert t("Unsupported format (use mp3, wav or ogg)") in app.status.cget("text")
 visto = []
 app.worker.enqueue = visto.append
 assert app.sb_reproducir(0)
