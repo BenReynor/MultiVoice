@@ -8,6 +8,8 @@
 
 Type in the window, press **Speak** and your audience hears you with the voice you chose.
 
+**[⬇ Download the latest version](https://github.com/BenReynor/MultiVoice/releases/latest)** · Linux and Windows · no installation needed
+
 </div>
 
 > [!WARNING]
