@@ -17,6 +17,8 @@ import threading
 import edge_tts
 from gtts import gTTS
 
+from idioma import t
+
 ROBOT_VOICE = "🤖 Robot Sound"
 SAMPLE_RATE = 48000
 
@@ -269,7 +271,8 @@ class _SdPlayer:
                             break
                         stream.write(data)
         except Exception as exc:
-            print(f"MultiVoice: playback error ({exc})", file=sys.stderr)
+            print(t("MultiVoice: playback error ({error})", error=exc),
+                  file=sys.stderr)
         finally:
             self._done.set()
 

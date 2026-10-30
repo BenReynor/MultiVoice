@@ -330,6 +330,10 @@ _ES = {
         '🗑️ Borrado {name}',
     '⚠️ Could not open the folder: {error}':
         '⚠️ No se pudo abrir la carpeta: {error}',
+    'Save audio':
+        'Guardar audio',
+    'MultiVoice: playback error ({error})':
+        'MultiVoice: error de reproducción ({error})',
     '🧹 Automatic cleanup: {n} old file(s) removed':
         '🧹 Limpieza automática: {n} archivo(s) antiguos eliminados',
 }

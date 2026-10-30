@@ -890,6 +890,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
             path = os.path.join(lib_dir, f"voz_{ts}.{ext}")
         else:
             path = filedialog.asksaveasfilename(
+                title=t("Save audio"),
                 defaultextension=f".{ext}",
                 filetypes=[(f"Audio ({ext})", f"*.{ext}")],
                 initialfile=f"multivoice_{self.tab_counter}.{ext}")
