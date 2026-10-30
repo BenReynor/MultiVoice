@@ -1,5 +1,7 @@
 <div align="center">
 
+**English** · [Español](README.es.md)
+
 <img src="assets/icon.png" width="96" alt="MultiVoice icon">
 
 # MultiVoice
@@ -30,7 +32,7 @@ Type in the window, press **Speak** and your audience hears you with the voice y
 
 <p align="center"><img src="docs/capturas/ajustes.png" width="520" alt="Settings → Shortcuts"><br><em>Settings → Shortcuts, with the global “speak” shortcut</em></p>
 
-The interface is in Spanish.
+The interface is in **English by default**. To switch to Spanish, go to **Settings → General → Language / Idioma**, choose *Español* and restart the app. 🇪🇸 [Este README en español](README.es.md).
 
 ## What you can do
 
@@ -40,7 +42,7 @@ The interface is in Spanish.
 - **Queue and history:** a side panel shows what is playing (with a progress bar and level meter), what is waiting in the queue (each item can be removed) and what you said this session (repeat with one click).
 - **Pronunciation dictionary:** replacements applied before speaking with any engine (e.g. `xd` → “equis de”), whole word or not, case-insensitive; can be turned off.
 - **Soundboard:** add your own audio files (mp3/wav/ogg), name them and play them through the virtual microphone, respecting the queue.
-- **Hear yourself:** the **Escucharme** switch also plays through your speakers what goes out through the virtual mic.
+- **Hear yourself:** the **Hear myself** switch also plays through your speakers what goes out through the virtual mic.
 - **Global shortcut to speak from any app:** `multivoice --decir` opens a small always-on-top box in the running app; type and press Enter. See [Global shortcut](#global-shortcut).
 - **Several text tabs**, optional auto-clear after speaking, and **save audio** to MP3 or WAV.
 - **Audio library:** with *Auto-save* on, every spoken text is saved with its text and voice; search, play, open the folder or delete. Files created by the app (`voz_*`) older than 30 days are deleted automatically; any other file in the folder is never touched.
@@ -101,14 +103,14 @@ On Linux the app creates the `🎤` virtual microphone when it opens and removes
 - Discord: Settings → Voice & Video → Input device → `🎤`
 - Any other app that lets you choose a microphone works the same way.
 
-Type some text, press **🔊 Hablar** (or Enter) and the voice goes out through the virtual mic.
+Type some text, press **🔊 Speak** (or Enter) and the voice goes out through the virtual mic.
 
 ## Global shortcut
 
 `multivoice --decir` asks the open MultiVoice to show a small always-on-top box: type, press Enter and it is spoken. To use it from any app, bind it to a key:
 
-- **Linux:** Wayland does not let apps register global shortcuts, so the system does it. *Ajustes → Atajos* shows the exact command and, on GNOME, a button that creates the shortcut for you (default `Ctrl+Alt+H`). On other desktops, add a custom shortcut that runs that command.
-- **Windows:** the app registers the shortcut itself (configurable in *Ajustes → Atajos*, default `Ctrl+Alt+H`).
+- **Linux:** Wayland does not let apps register global shortcuts, so the system does it. *Settings → Shortcuts* shows the exact command and, on GNOME, a button that creates the shortcut for you (default `Ctrl+Alt+H`). On other desktops, add a custom shortcut that runs that command.
+- **Windows:** the app registers the shortcut itself (configurable in *Settings → Shortcuts*, default `Ctrl+Alt+H`).
 
 ## Keyboard shortcuts
 
@@ -128,7 +130,7 @@ There the app cannot create the microphone on its own: it needs a virtual audio 
 1. **Install the cable (once):** [VB-CABLE](https://vb-audio.com/Cable/) (installer, requires administrator permissions).
 2. **Choose the input in Discord:** Settings → Voice & Video → Input device → `CABLE Output`.
 
-To hear yourself, turn on **Escucharme** in the app (it also plays through your normal output).
+To hear yourself, turn on **Hear myself** in the app (it also plays through your normal output).
 
 ### If something doesn't sound right
 
@@ -159,7 +161,7 @@ CI runs the same checks on Linux and Windows and builds the binaries (`.github/w
 Contributions are welcome: open an [issue](https://github.com/BenReynor/MultiVoice/issues)
 to report a bug or suggest an idea, or send a pull request. Run the checks in
 [Development](#development) first (CI runs them on Linux and Windows). Testing on
-a real Windows PC with VB-CABLE is especially helpful. The interface is in Spanish.
+a real Windows PC with VB-CABLE is especially helpful. The interface is in English (with optional Spanish).
 
 ## License
 
