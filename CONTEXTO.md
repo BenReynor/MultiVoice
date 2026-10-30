@@ -36,7 +36,8 @@ Hablar y la gente escucha la voz elegida.
 - **Estilos con las skills de diseño** (`ui-tokens` + `estilo-*`, en
   `~/.claude/skills`): el tema por defecto es **estilo-discord**; los 10 estilos
   de las skills se ofrecen como temas elegibles.
-- **Interfaz en español**, coherente en toda la app (hoy mezcla inglés y español).
+- **Interfaz en inglés por defecto con español opcional** (idioma.py: texto
+  fuente en inglés dentro de `t()`, catálogo español; FASE 3 de plan.md).
 - Funciones nuevas pedidas por el dueño: cola e historial visibles, perfiles de
   voz, frases rápidas, diccionario de pronunciación, escucharse a uno mismo,
   soundboard de archivos y un atajo global para hablar desde cualquier app.

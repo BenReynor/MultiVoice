@@ -34,3 +34,38 @@ Verificación manual (el dueño, en Linux con Discord):
 - Recorrer los temas; hablar con cada motor; guardar y abrir la biblioteca.
 - Crear un perfil y una frase rápida y decirlas en Discord por el micrófono virtual.
 - Probar el diccionario, «Escucharme», un sonido del soundboard y el atajo global con Discord delante.
+
+## FASE 3 — Idiomas: inglés por defecto, español opcional
+
+MultiVoice se publica para cualquiera: la interfaz arranca en **inglés** y se
+puede cambiar a **español** en Ajustes. Mismo enfoque que Dédalo: el texto fuente
+del código está en inglés y `t()` lo traduce con un catálogo español; si falta
+una entrada se muestra el inglés. No se traducen las voces, los nombres que el
+usuario escribe (perfiles, frases, categorías, sonidos) ni los identificadores
+guardados en config.json (por ejemplo `🤖 Robot Sound`, que perfiles y frases
+usan como voz). El cambio de idioma se aplica al reiniciar la app.
+
+- [ ] Base de idiomas y selector
+  criterio: existe `idioma.py` con `t(texto, **kwargs)` (texto fuente en inglés, placeholders `{nombre}` con str.format), `set_idioma()`/`idioma()` y el catálogo `_ES` (inglés → español); config.json guarda `"language"` con `"en"` por defecto (un config.json antiguo sin la clave carga como `"en"`); el idioma se fija con `set_idioma` ANTES de construir cualquier widget (nada de `t()` evaluado al importar un módulo: los nombres de pestañas como LIB_TAB, TAB_FRASES, TAB_SOUNDBOARD y TAB_PRONUNCIACION pasan a funciones o se calculan al construir la interfaz); Ajustes → General tiene un selector «Language / Idioma» (English, Español) que guarda la elección y avisa de que se aplica al reiniciar; tests de pytest: t() en inglés y español, entrada que falta → inglés, placeholders, config sin "language" → "en", y un test que recorre los .py del proyecto (con `ast`) y falla si algún literal pasado a `t()` no está en `_ES`
+
+- [ ] Traducir la ventana principal
+  criterio: multivoice.py (cabecera, barra de motor y voz, perfiles, ajuste de voz, editor y pestañas, barra inferior, casillas, barra de estado y sus mensajes), panel_cola.py y pantalla_carga.py usan `t()`; en inglés por defecto y en español con `"language": "es"`; tests/gui_smoke.py comprueba que por defecto el botón principal dice «Speak» y que con `"language": "es"` dice «Hablar», y que el resto del smoke sigue pasando en los dos idiomas
+
+- [ ] Traducir Ajustes, atajos y el cuadro para decir
+  criterio: ajustes.py (secciones General, Audio, Sonido robot y Atajos, con la tabla de atajos y la explicación del atajo global), atajo.py (mensajes visibles) y decir_rapido.py usan `t()`; los nombres de las secciones de Ajustes se muestran traducidos pero la lógica no depende del texto mostrado; gui_smoke abre Ajustes en los dos idiomas
+
+- [ ] Traducir Frases, Pronunciación, Soundboard y Biblioteca
+  criterio: frases.py, pronunciacion.py, soundboard.py y biblioteca.py usan `t()` en pestañas, botones, cabeceras, diálogos, confirmaciones y mensajes; los datos del usuario y los de ejemplo guardados en config.json no cambian al cambiar de idioma; gui_smoke recorre esas vistas en los dos idiomas
+
+- [ ] Traducir mensajes y diálogos del sistema
+  criterio: los mensajes que ve el usuario desde tts_engine.py, virtualmic.py, library.py, instancia.py y platform_utils.py (errores, avisos de micrófono virtual o de VB-CABLE, títulos de diálogos de archivos y messagebox) usan `t()`; tests/smoke_test.py sigue pasando
+
+- [ ] Sin textos sueltos en español
+  criterio: un test de pytest recorre con `ast` todos los .py de la app (fuera de idioma.py y tests/) y falla si encuentra un literal de texto visible en español (con á, é, í, ó, ú, ñ, ¿ o ¡) que no sea un comentario, docstring, voz, nombre de ejemplo o identificador documentado en una lista de excepciones corta y justificada; el test pasa
+
+- [ ] Documentación
+  criterio: README.md (en inglés) dice que la interfaz está en inglés por defecto y se cambia a español en Settings → General, y enlaza «Español» a un README.es.md nuevo con la traducción completa (mismas capturas), que enlaza de vuelta «English»; CONTEXTO.md cambia «Interfaz en español» por «Interfaz en inglés por defecto con español opcional (idioma.py)»
+
+Verificación manual:
+- Abrir MultiVoice: todo en inglés. Settings → Language → Español, reiniciar: todo en español.
+- Hablar, perfiles, frases y soundboard funcionan igual en los dos idiomas.
