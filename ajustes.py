@@ -14,7 +14,14 @@ from idioma import t
 
 ENGINES = {"edge": "Microsoft Edge", "gtts": "Google TTS",
            "robot": "Sonido robot"}
+# Las claves identifican la sección; el texto mostrado sale de `_titulo_seccion`.
 SECCIONES = ("General", "Audio", "Sonido robot", "Atajos")
+
+
+def _titulo_seccion(clave):
+    """Nombre traducido de una sección (se evalúa al construir la ventana)."""
+    return {"General": t("General"), "Audio": t("Audio"),
+            "Sonido robot": t("Robot sound"), "Atajos": t("Shortcuts")}[clave]
 
 
 class AjustesMixin:
@@ -38,9 +45,10 @@ class AjustesMixin:
         win.after(150, lambda: self._grab(win))
         return win
 
-    def confirmar(self, titulo, mensaje, texto_ok="Borrar"):
+    def confirmar(self, titulo, mensaje, texto_ok=None):
         """Diálogo modal Cancelar / confirmar. Devuelve True si se confirma."""
         win = self._modal(titulo, 420, 190)
+        texto_ok = texto_ok or t("Delete")
         res = {"ok": False}
         ctk.CTkLabel(win, text=titulo, anchor="w",
                      font=self.font(self._px("--fs-lg", 16), True),
@@ -65,7 +73,7 @@ class AjustesMixin:
                      hover_color=self._col("--danger"),
                      text_color="#ffffff")
         ok.pack(side="right")
-        cancel = ctk.CTkButton(barra, text="Cancelar",
+        cancel = ctk.CTkButton(barra, text=t("Cancel"),
                                command=lambda: cerrar(False),
                                height=self._px("--control-h", 36),
                                font=self.font())
@@ -91,21 +99,21 @@ class AjustesMixin:
             self._show_section(seccion)
             return
         c = self._col
-        win = self._modal("Ajustes de MultiVoice", 700, 620)
+        win = self._modal(t("MultiVoice Settings"), 700, 620)
         self.settings_win = win
 
         nav = ctk.CTkFrame(win, width=190, corner_radius=0,
                            fg_color=c("--surface-2"))
         nav.pack(side="left", fill="y")
         nav.pack_propagate(False)
-        ctk.CTkLabel(nav, text="AJUSTES", anchor="w",
+        ctk.CTkLabel(nav, text=t("SETTINGS"), anchor="w",
                      font=self.font(self._px("--fs-xs", 11), True),
                      text_color=c("--text-3")).pack(fill="x", padx=16,
                                                     pady=(18, 6))
         self._nav_btns = {}
         for nombre in SECCIONES:
             b = ctk.CTkButton(
-                nav, text=nombre, anchor="w", height=32, corner_radius=4,
+                nav, text=_titulo_seccion(nombre), anchor="w", height=32, corner_radius=4,
                 font=self.font(), fg_color="transparent",
                 hover_color=c("--surface-hover"), text_color=c("--text-2"),
                 command=lambda n=nombre: self._show_section(n))
@@ -116,12 +124,12 @@ class AjustesMixin:
         cuerpo.pack(side="left", fill="both", expand=True)
         pie = ctk.CTkFrame(cuerpo, fg_color="transparent")
         pie.pack(side="bottom", fill="x", padx=16, pady=12)
-        cerrar = ctk.CTkButton(pie, text="Cerrar", command=win.destroy,
+        cerrar = ctk.CTkButton(pie, text=t("Close"), command=win.destroy,
                                height=self._px("--control-h", 36),
                                font=self.font())
         self._paint_button(cerrar, True)
         cerrar.pack(side="right")
-        ctk.CTkLabel(pie, text="Esc para cerrar", font=self.font(),
+        ctk.CTkLabel(pie, text=t("Esc to close"), font=self.font(),
                      text_color=c("--text-3")).pack(side="left")
 
         self._sections = {}
@@ -194,8 +202,8 @@ class AjustesMixin:
 
     # -- secciones
     def _build_general(self, p):
-        self._s_titulo(p, "General")
-        self._s_etiqueta(p, "Motor de voz")
+        self._s_titulo(p, t("General"))
+        self._s_etiqueta(p, t("Voice engine"))
         fila = ctk.CTkFrame(p, fg_color="transparent")
         fila.pack(fill="x", padx=24)
         actual = ENGINES.get(self.current_engine, ENGINES["edge"])
@@ -206,15 +214,15 @@ class AjustesMixin:
         self._paint_menu(self.settings_engine_menu)
         self.settings_engine_menu.set(actual)
         self.settings_engine_menu.pack(side="left")
-        self._s_etiqueta(p, "Edge y Google necesitan internet; el sonido "
-                            "robot funciona sin conexión.", ayuda=True)
-        self._s_etiqueta(p, "Máximo de pestañas de texto")
-        self._s_slider(p, "Pestañas", "max_tabs", 1, 10, default=5)
-        self._s_etiqueta(p, "Carpeta de la biblioteca")
+        self._s_etiqueta(p, t("Edge and Google need internet; the robot "
+                              "sound works offline."), ayuda=True)
+        self._s_etiqueta(p, t("Maximum number of text tabs"))
+        self._s_slider(p, t("Tabs"), "max_tabs", 1, 10, default=5)
+        self._s_etiqueta(p, t("Library folder"))
         ctk.CTkLabel(p, text=self._get_library_dir(), anchor="w",
                      font=ctk.CTkFont(family=pu.TEXT_FONT, size=12),
                      text_color=self._col("--text")).pack(fill="x", padx=24)
-        self._s_etiqueta(p, "El tema se elige en la ventana principal.",
+        self._s_etiqueta(p, t("The theme is chosen in the main window."),
                          ayuda=True)
         self._s_etiqueta(p, t("Language / Idioma"))
         fila_idioma = ctk.CTkFrame(p, fg_color="transparent")
@@ -242,34 +250,34 @@ class AjustesMixin:
         aviso_idioma.pack(fill="x", padx=24, pady=(4, 0))
 
     def _build_audio(self, p):
-        self._s_titulo(p, "Audio")
-        self._s_etiqueta(p, "Después de hablar")
-        self._s_check(p, "Borrar el texto al hablar", self.auto_clear_var,
+        self._s_titulo(p, t("Audio"))
+        self._s_etiqueta(p, t("After speaking"))
+        self._s_check(p, t("Clear the text after speaking"), self.auto_clear_var,
                       "auto_clear")
-        self._s_etiqueta(p, "Reproducción")
-        self._s_check(p, "Encolar audios (no interrumpir)", self.queue_var,
+        self._s_etiqueta(p, t("Playback"))
+        self._s_check(p, t("Queue audio (do not interrupt)"), self.queue_var,
                       "queue_enabled")
-        self._s_etiqueta(p, "Biblioteca")
-        self._s_check(p, "Guardar cada audio hablado", self.auto_save_var,
+        self._s_etiqueta(p, t("Library"))
+        self._s_check(p, t("Save every spoken audio"), self.auto_save_var,
                       "auto_save")
 
     def _build_robot(self, p):
-        self._s_titulo(p, "Sonido robot")
-        self._s_slider(p, "Velocidad (ppm)", "robot_speed", 40, 450,
+        self._s_titulo(p, t("Robot sound"))
+        self._s_slider(p, t("Speed (wpm)"), "robot_speed", 40, 450,
                        default=135)
-        self._s_slider(p, "Tono espeak", "robot_pitch", 1, 99, default=30)
-        self._s_slider(p, "Metal (distorsión)", "robot_metal", 0, 100, "%",
+        self._s_slider(p, t("espeak pitch"), "robot_pitch", 1, 99, default=30)
+        self._s_slider(p, t("Metal (distortion)"), "robot_metal", 0, 100, "%",
                        default=70)
-        self._s_slider(p, "Volumen (dB)", "robot_volume", -50, 50, "dB")
+        self._s_slider(p, t("Volume (dB)"), "robot_volume", -50, 50, "dB")
 
     def _build_atajos(self, p):
-        self._s_titulo(p, "Atajos")
+        self._s_titulo(p, t("Shortcuts"))
         for k, v in (
-                (f"{pu.MOD_LABEL}+Enter", "Hablar la pestaña actual"),
-                ("Enter", "Hablar desde el editor"),
-                (f"{pu.MOD_LABEL}+T", "Nueva pestaña"),
-                (f"{pu.MOD_LABEL}+W", "Cerrar pestaña"),
-                ("F5", "Probar la voz elegida")):
+                (f"{pu.MOD_LABEL}+Enter", t("Speak the current tab")),
+                ("Enter", t("Speak from the editor")),
+                (f"{pu.MOD_LABEL}+T", t("New tab")),
+                (f"{pu.MOD_LABEL}+W", t("Close tab")),
+                ("F5", t("Test the chosen voice"))):
             fila = ctk.CTkFrame(p, fg_color="transparent")
             fila.pack(fill="x", padx=24, pady=4)
             ctk.CTkLabel(fila, text=k, width=140, anchor="w",
@@ -281,11 +289,11 @@ class AjustesMixin:
 
     def _build_atajo_global(self, p):
         """Atajo para hablar desde cualquier app (`multivoice --decir`)."""
-        self._s_etiqueta(p, "Atajo global para hablar")
+        self._s_etiqueta(p, t("Global shortcut to speak"))
         if pu.IS_WIN:
             self._s_etiqueta(
-                p, "Abre un cuadro siempre encima donde escribes y Enter lo "
-                   "dice. Formato: ctrl+alt+h.", ayuda=True)
+                p, t("Opens an always-on-top box where you type and Enter "
+                     "says it. Format: ctrl+alt+h."), ayuda=True)
             fila = ctk.CTkFrame(p, fg_color="transparent")
             fila.pack(fill="x", padx=24, pady=4)
             ent = ctk.CTkEntry(fila, width=200, font=self.font())
@@ -298,14 +306,14 @@ class AjustesMixin:
             def guardar():
                 txt = ent.get().strip().lower()
                 if atajo.a_pynput(txt) is None:
-                    aviso.configure(text="Atajo no válido")
+                    aviso.configure(text=t("Invalid shortcut"))
                     return
                 self.cfg["atajo_global"] = txt
                 self._save_soon()
                 ok = self.registrar_atajo_global()
-                aviso.configure(text="Guardado" if ok else "No se pudo registrar")
+                aviso.configure(text=t("Saved") if ok else t("Could not register"))
 
-            b = ctk.CTkButton(fila, text="Guardar", width=90, command=guardar,
+            b = ctk.CTkButton(fila, text=t("Save"), width=90, command=guardar,
                               height=self._px("--control-h", 36),
                               font=self.font())
             self._paint_button(b, True)
@@ -313,11 +321,11 @@ class AjustesMixin:
             aviso.pack(side="left")
             return
         self._s_etiqueta(
-            p, "En Linux (Wayland) las apps no pueden registrar atajos "
-               "globales. Asigna el comando «multivoice --decir» a una tecla "
-               "en los ajustes de tu sistema (Teclado → Atajos "
-               "personalizados) y abrirá un cuadro siempre encima donde "
-               "escribes y Enter lo dice.", ayuda=True)
+            p, t("On Linux (Wayland) apps cannot register global "
+                     "shortcuts. Assign the command «multivoice --decir» to a "
+                     "key in your system settings (Keyboard → Custom "
+                     "shortcuts) and it will open an always-on-top box where "
+                     "you type and Enter says it."), ayuda=True)
         ctk.CTkLabel(p, text=atajo.comando_decir(), anchor="w",
                      font=ctk.CTkFont(family=pu.TEXT_FONT, size=12),
                      text_color=self._col("--text")).pack(fill="x", padx=24)
@@ -333,11 +341,11 @@ class AjustesMixin:
             txt = self.cfg.get("atajo_global", atajo.ATAJO_POR_DEFECTO)
             try:
                 tecla = atajo.crear_atajo_gnome(txt)
-                aviso.configure(text=f"Creado en GNOME: {tecla}")
+                aviso.configure(text=t("Created in GNOME: {key}", key=tecla))
             except RuntimeError as exc:
-                aviso.configure(text=f"No se pudo crear: {exc}")
+                aviso.configure(text=t("Could not create it: {error}", error=exc))
 
-        b = ctk.CTkButton(fila, text="Crear atajo en GNOME", command=crear,
+        b = ctk.CTkButton(fila, text=t("Create shortcut in GNOME"), command=crear,
                           height=self._px("--control-h", 36),
                           font=self.font())
         self._paint_button(b, True)

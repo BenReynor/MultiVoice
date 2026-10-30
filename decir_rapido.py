@@ -6,6 +6,7 @@ import customtkinter as ctk
 
 import atajo
 import instancia
+from idioma import t
 
 
 class DecirRapidoMixin:
@@ -44,8 +45,8 @@ class DecirRapidoMixin:
         texto = self.cfg.get("atajo_global", atajo.ATAJO_POR_DEFECTO)
         ok = self.atajo_win.registrar(texto)
         if not ok:
-            self.set_status("⚠️ No se pudo registrar el atajo global "
-                            f"({texto})")
+            self.set_status(t("⚠️ Could not register the global shortcut "
+                              "({shortcut})", shortcut=texto))
         return ok
 
     # ---------- Cuadro ----------
@@ -59,7 +60,7 @@ class DecirRapidoMixin:
         c = self._col
         win = ctk.CTkToplevel(self.root)
         self.decir_win = win
-        win.title("Decir")
+        win.title(t("Say"))
         win.configure(fg_color=c("--surface"))
         win.attributes("-topmost", True)
         win.resizable(False, False)
@@ -71,7 +72,7 @@ class DecirRapidoMixin:
             x = y = 100
         win.geometry(f"{ancho}x{alto}+{x}+{y}")
         self.decir_entry = ctk.CTkEntry(
-            win, placeholder_text="Escribe y pulsa Enter para decirlo…",
+            win, placeholder_text=t("Type and press Enter to say it…"),
             height=self._px("--control-h", 36), font=self.font(),
             fg_color=c("--surface-2"), text_color=c("--text"),
             border_color=c("--accent"))

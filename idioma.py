@@ -100,6 +100,105 @@ _ES = {
     "🎭 Profile «{name}» updated": "🎭 Perfil «{name}» actualizado",
     "🎭 Profile renamed to «{name}»": "🎭 Perfil renombrado a «{name}»",
     "🎭 Profile «{name}» deleted": "🎭 Perfil «{name}» borrado",
+    # Ajustes, atajos y cuadro «Decir»
+    'General':
+        'General',
+    'Audio':
+        'Audio',
+    'Robot sound':
+        'Sonido robot',
+    'Shortcuts':
+        'Atajos',
+    'Delete':
+        'Borrar',
+    'Cancel':
+        'Cancelar',
+    'MultiVoice Settings':
+        'Ajustes de MultiVoice',
+    'SETTINGS':
+        'AJUSTES',
+    'Close':
+        'Cerrar',
+    'Esc to close':
+        'Esc para cerrar',
+    'Voice engine':
+        'Motor de voz',
+    'Edge and Google need internet; the robot sound works offline.':
+        'Edge y Google necesitan internet; el sonido robot funciona sin conexión.',
+    'Maximum number of text tabs':
+        'Máximo de pestañas de texto',
+    'Tabs':
+        'Pestañas',
+    'Library folder':
+        'Carpeta de la biblioteca',
+    'The theme is chosen in the main window.':
+        'El tema se elige en la ventana principal.',
+    'After speaking':
+        'Después de hablar',
+    'Clear the text after speaking':
+        'Borrar el texto al hablar',
+    'Playback':
+        'Reproducción',
+    'Queue audio (do not interrupt)':
+        'Encolar audios (no interrumpir)',
+    'Library':
+        'Biblioteca',
+    'Save every spoken audio':
+        'Guardar cada audio hablado',
+    'Speed (wpm)':
+        'Velocidad (ppm)',
+    'espeak pitch':
+        'Tono espeak',
+    'Metal (distortion)':
+        'Metal (distorsión)',
+    'Volume (dB)':
+        'Volumen (dB)',
+    'Speak the current tab':
+        'Hablar la pestaña actual',
+    'Speak from the editor':
+        'Hablar desde el editor',
+    'New tab':
+        'Nueva pestaña',
+    'Close tab':
+        'Cerrar pestaña',
+    'Test the chosen voice':
+        'Probar la voz elegida',
+    'Global shortcut to speak':
+        'Atajo global para hablar',
+    'Opens an always-on-top box where you type and Enter says it. Format: ctrl+alt+h.':
+        'Abre un cuadro siempre encima donde escribes y Enter lo dice. Formato: ctrl+alt+h.',
+    'Invalid shortcut':
+        'Atajo no válido',
+    'Saved':
+        'Guardado',
+    'Could not register':
+        'No se pudo registrar',
+    'Save':
+        'Guardar',
+    ("On Linux (Wayland) apps cannot register global shortcuts. Assign the "
+     "command «multivoice --decir» to a key in your system settings "
+     "(Keyboard → Custom shortcuts) and it will open an always-on-top box "
+     "where you type and Enter says it."):
+        ("En Linux (Wayland) las apps no pueden registrar atajos globales. "
+         "Asigna el comando «multivoice --decir» a una tecla en los ajustes "
+         "de tu sistema (Teclado → Atajos personalizados) y abrirá un cuadro "
+         "siempre encima donde escribes y Enter lo dice."),
+    'Created in GNOME: {key}':
+        'Creado en GNOME: {key}',
+    'Could not create it: {error}':
+        'No se pudo crear: {error}',
+    'Create shortcut in GNOME':
+        'Crear atajo en GNOME',
+    'gsettings failed':
+        'gsettings falló',
+    'Invalid shortcut: use e.g. ctrl+alt+h':
+        'Atajo no válido: usa p. ej. ctrl+alt+h',
+    '⚠️ Could not register the global shortcut ({shortcut})':
+        '⚠️ No se pudo registrar el atajo global ({shortcut})',
+    'Say':
+        'Decir',
+    'Type and press Enter to say it…':
+        'Escribe y pulsa Enter para decirlo…',
     # Ajustes → General → idioma
     "Language / Idioma": "Idioma / Language",
     "The language changes when you restart MultiVoice.":

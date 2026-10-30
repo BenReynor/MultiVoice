@@ -10,6 +10,8 @@ import shutil
 import subprocess
 import sys
 
+from idioma import t
+
 ATAJO_POR_DEFECTO = "ctrl+alt+h"
 _RUTA_GNOME = "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/multivoice/"
 _SCHEMA_GNOME = "org.gnome.settings-daemon.plugins.media-keys"
@@ -125,7 +127,7 @@ def _parse_lista(salida):
 def _gsettings(args, run):
     p = run(["gsettings"] + args, capture_output=True, text=True, timeout=10)
     if p.returncode != 0:
-        raise RuntimeError((p.stderr or "gsettings falló").strip())
+        raise RuntimeError((p.stderr or t("gsettings failed")).strip())
     return p.stdout
 
 
@@ -134,7 +136,7 @@ def crear_atajo_gnome(texto, comando=None, run=subprocess.run):
     Devuelve el texto del atajo en formato GNOME; lanza RuntimeError si falla."""
     tecla = a_gnome(texto)
     if tecla is None:
-        raise RuntimeError("Atajo no válido: usa p. ej. ctrl+alt+h")
+        raise RuntimeError(t("Invalid shortcut: use e.g. ctrl+alt+h"))
     comando = comando or comando_decir()
     try:
         lista = _parse_lista(_gsettings(["get", _SCHEMA_GNOME,

@@ -118,6 +118,10 @@ assert win.winfo_exists() and isinstance(win, ctk.CTkToplevel), "Ajustes no es m
 assert win.winfo_toplevel() is win and win is not root
 assert list(app._sections) == ["General", "Audio", "Sonido robot", "Atajos"]
 assert app.settings_engine_menu.get() == mv.ENGINES["edge"], "motor vacío en Ajustes"
+# Los nombres de sección se muestran traducidos; las claves no cambian
+for sec, ingles in (("General", "General"), ("Audio", "Audio"),
+                    ("Sonido robot", "Robot sound"), ("Atajos", "Shortcuts")):
+    assert app._nav_btns[sec].cget("text") == t(ingles), sec
 for sec in app._sections:
     app._show_section(sec)
     root.update()
