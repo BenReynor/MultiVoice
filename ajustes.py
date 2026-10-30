@@ -8,7 +8,9 @@ import tkinter as tk
 import customtkinter as ctk
 
 import atajo
+import idioma
 import platform_utils as pu
+from idioma import t
 
 ENGINES = {"edge": "Microsoft Edge", "gtts": "Google TTS",
            "robot": "Sonido robot"}
@@ -214,6 +216,30 @@ class AjustesMixin:
                      text_color=self._col("--text")).pack(fill="x", padx=24)
         self._s_etiqueta(p, "El tema se elige en la ventana principal.",
                          ayuda=True)
+        self._s_etiqueta(p, t("Language / Idioma"))
+        fila_idioma = ctk.CTkFrame(p, fg_color="transparent")
+        fila_idioma.pack(fill="x", padx=24)
+        aviso_idioma = ctk.CTkLabel(p, text="", anchor="w", justify="left",
+                                    wraplength=420, font=self.font(),
+                                    text_color=self._col("--text-2"))
+
+        def elegir_idioma(nombre):
+            codigo = next(c for c, n in idioma.IDIOMAS.items() if n == nombre)
+            self.cfg["language"] = codigo
+            self._save_soon()
+            aviso_idioma.configure(
+                text=t("The language changes when you restart MultiVoice."))
+
+        self.settings_language_menu = ctk.CTkOptionMenu(
+            fila_idioma, values=list(idioma.IDIOMAS.values()), width=220,
+            height=self._px("--control-h", 36), font=self.font(),
+            dropdown_font=self.font(), command=elegir_idioma)
+        self._paint_menu(self.settings_language_menu)
+        self.settings_language_menu.set(
+            idioma.IDIOMAS.get(self.cfg.get("language"),
+                               idioma.IDIOMAS[idioma.POR_DEFECTO]))
+        self.settings_language_menu.pack(side="left")
+        aviso_idioma.pack(fill="x", padx=24, pady=(4, 0))
 
     def _build_audio(self, p):
         self._s_titulo(p, "Audio")

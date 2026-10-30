@@ -18,12 +18,13 @@ from types import SimpleNamespace
 import customtkinter as ctk
 
 import atajo
+import idioma
 import instancia
 import medidor
 import temas
 import tts_engine
 from ajustes import ENGINES, AjustesMixin
-from biblioteca import LIB_TAB, BibliotecaMixin
+from biblioteca import BibliotecaMixin, lib_tab
 from cola import ColaVoz
 from decir_rapido import DecirRapidoMixin
 from panel_cola import ColaMixin
@@ -52,6 +53,7 @@ _HEX6 = re.compile(r"^#[0-9a-fA-F]{6}$")
 _HEX8 = re.compile(r"^#[0-9a-fA-F]{8}$")
 
 DEFAULT_CONFIG = {
+    "language": idioma.POR_DEFECTO,
     "theme": temas.TEMA_POR_DEFECTO,
     "theme_mode": None,
     "voice": "es-MX-JorgeNeural",
@@ -237,6 +239,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
         avance = progreso or (lambda texto, fraccion: None)
         avance("Leyendo tu configuración…", 0.05)
         self.cfg = load_config()
+        idioma.set_idioma(self.cfg.get("language"))
         self._save_job = None
         self.theme, self.mode = temas.traducir_nombre(
             self.cfg.get("theme"), self.cfg.get("theme_mode"))
@@ -956,7 +959,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
     def on_tab_changed(self, event=None):
         name = self.tabview.get()
         self._paint_tabview(self.tabview)
-        if name == LIB_TAB:
+        if name == lib_tab():
             self._refresh_library()
         elif name in self.tab_texts:
             self.tab_texts[name].focus_set()
@@ -1002,6 +1005,7 @@ def main(argv=None):
             print("MultiVoice: ya hay una instancia abierta, pero no responde.",
                   file=sys.stderr)
         return
+    idioma.set_idioma(load_config().get("language"))  # antes de todo widget
     root = ctk.CTk()
     # La ventana se construye oculta; mientras, la pantalla de carga muestra
     # el avance (antes se veía aparecer cada control).

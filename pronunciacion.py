@@ -11,7 +11,12 @@ import re
 
 import customtkinter as ctk
 
-TAB_PRONUNCIACION = "🗣 Pronunciación"
+from idioma import t
+
+
+def tab_pronunciacion():
+    return t("🗣 Pronunciation")
+
 
 EJEMPLOS = [
     {"text": "xd", "say": "equis de", "whole": True},
@@ -123,7 +128,7 @@ class PronunciacionMixin:
     """Pestaña «Pronunciación»: tabla editable de reemplazos."""
 
     def _build_pronunciacion_tab(self):
-        self.pron_tab = self.tabview.add(TAB_PRONUNCIACION)
+        self.pron_tab = self.tabview.add(tab_pronunciacion())
         barra = ctk.CTkFrame(self.pron_tab, fg_color="transparent")
         barra.pack(fill="x", padx=4, pady=(2, 6))
         self.pron_var = ctk.BooleanVar(value=activo(self.cfg))

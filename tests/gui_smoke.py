@@ -118,7 +118,7 @@ for nombre, texto, voz in (("voz_1.mp3", "Hola mundo", "Jorge"),
         f.write(b"x" * 2048)
     with open(os.path.join(lib, nombre + ".json"), "w", encoding="utf-8") as f:
         json.dump({"text": texto, "voice": voz, "engine": "edge"}, f)
-app.tabview.set(mv.LIB_TAB)
+app.tabview.set(mv.lib_tab())
 app.on_tab_changed()
 root.update()
 assert len(app.lib_entries) == 2
@@ -187,7 +187,7 @@ root.update()
 import frases  # noqa: E402
 dichas = []
 app.worker.enqueue = dichas.append
-app.tabview.set(frases.TAB_FRASES)
+app.tabview.set(frases.tab_frases())
 app.on_tab_changed()
 root.update()
 assert frases.categorias(app.cfg) == ["Saludos", "Reacciones"]

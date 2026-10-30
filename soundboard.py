@@ -15,8 +15,13 @@ from tkinter import filedialog
 import customtkinter as ctk
 
 import tts_engine
+from idioma import t
 
-TAB_SOUNDBOARD = "🎵 Soundboard"
+
+def tab_soundboard():
+    return t("🎵 Soundboard")
+
+
 EXTENSIONES = (".mp3", ".wav", ".ogg")
 MOTOR = "sound"
 
@@ -128,7 +133,7 @@ class SoundboardMixin:
     """Vista «Soundboard»: un botón por sonido."""
 
     def _build_soundboard_tab(self):
-        self.sb_tab = self.tabview.add(TAB_SOUNDBOARD)
+        self.sb_tab = self.tabview.add(tab_soundboard())
         barra = ctk.CTkFrame(self.sb_tab, fg_color="transparent")
         barra.pack(fill="x", padx=4, pady=(2, 6))
         self._btn(barra, "＋ Añadir sonido", self.sb_anadir).pack(side="left")

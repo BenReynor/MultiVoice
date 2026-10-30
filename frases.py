@@ -11,8 +11,13 @@ import copy
 import customtkinter as ctk
 
 import tts_engine
+from idioma import t
 
-TAB_FRASES = "⚡ Frases"
+
+def tab_frases():
+    return t("⚡ Phrases")
+
+
 MAX_ATAJOS = 9
 CATEGORIA_NUEVA = "General"
 
@@ -189,7 +194,7 @@ class FrasesMixin:
     """Pestaña «Frases»: botones por categoría y atajos Ctrl+1…Ctrl+9."""
 
     def _build_frases_tab(self):
-        self.frases_tab = self.tabview.add(TAB_FRASES)
+        self.frases_tab = self.tabview.add(tab_frases())
         barra = ctk.CTkFrame(self.frases_tab, fg_color="transparent")
         barra.pack(fill="x", padx=4, pady=(2, 6))
         self._btn(barra, "＋ Frase", lambda: self.frase_dialogo()).pack(

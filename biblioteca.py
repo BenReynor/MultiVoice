@@ -12,10 +12,14 @@ from datetime import datetime
 import customtkinter as ctk
 
 import platform_utils as pu
+from idioma import t
 from library import cleanup_library, delete_entry, fmt_size, list_entries
 
-LIB_TAB = "📁 Biblioteca"
 MAX_FILAS = 200
+
+
+def lib_tab():
+    return t("📁 Library")
 
 
 class BibliotecaMixin:
@@ -23,7 +27,7 @@ class BibliotecaMixin:
         return self.cfg.get("library_path", pu.default_library_dir())
 
     def _build_library_tab(self):
-        self.lib_tab = self.tabview.add(LIB_TAB)
+        self.lib_tab = self.tabview.add(lib_tab())
         barra = ctk.CTkFrame(self.lib_tab, fg_color="transparent")
         barra.pack(fill="x", padx=4, pady=(2, 6))
         self.lib_search_var = tk.StringVar()
