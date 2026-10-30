@@ -153,3 +153,15 @@ xvfb-run -a .venv/bin/python tests/gui_smoke.py # opens the real window headless
 ```
 
 CI runs the same checks on Linux and Windows and builds the binaries (`.github/workflows/build.yml`). Packaged builds bundle CustomTkinter's data files (`--collect-all customtkinter`), the themes (`--add-data assets/temas`) and the icon; if you add a dependency with data files or a folder read at run time, add it to the “Build executable” step too. `CONTEXTO.md` explains the structure and the design decisions.
+
+## Contributing
+
+Contributions are welcome: open an [issue](https://github.com/BenReynor/MultiVoice/issues)
+to report a bug or suggest an idea, or send a pull request. Run the checks in
+[Development](#development) first (CI runs them on Linux and Windows). Testing on
+a real Windows PC with VB-CABLE is especially helpful. The interface is in Spanish.
+
+## License
+
+[MIT](LICENSE): you may use, copy, modify and distribute MultiVoice freely, including
+in your own projects, as long as you keep the copyright notice.
