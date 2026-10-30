@@ -26,11 +26,11 @@ Escribe en la ventana, pulsa **Hablar** y tu público te oye con la voz que eleg
 
 | Ventana principal (tema Discord) | Frases rápidas |
 |---|---|
-| ![Ventana principal](docs/capturas/principal.png) | ![Frases rápidas](docs/capturas/frases.png) |
+| ![Ventana principal](docs/capturas/es/principal.png) | ![Frases rápidas](docs/capturas/es/frases.png) |
 | **Biblioteca de audios** | **Tema retro** (uno de 10) |
-| ![Biblioteca](docs/capturas/biblioteca.png) | ![Tema retro](docs/capturas/tema_retro.png) |
+| ![Biblioteca](docs/capturas/es/biblioteca.png) | ![Tema retro](docs/capturas/es/tema_retro.png) |
 
-<p align="center"><img src="docs/capturas/ajustes.png" width="520" alt="Ajustes → Atajos"><br><em>Ajustes → Atajos, con el atajo global para hablar</em></p>
+<p align="center"><img src="docs/capturas/es/ajustes.png" width="520" alt="Ajustes → Atajos"><br><em>Ajustes → Atajos, con el atajo global para hablar</em></p>
 
 La interfaz está en **inglés por defecto**. Para cambiarla a español ve a **Settings → General → Language / Idioma**, elige *Español* y reinicia la app.
 

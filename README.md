@@ -26,11 +26,11 @@ Type in the window, press **Speak** and your audience hears you with the voice y
 
 | Main window (Discord theme) | Quick phrases |
 |---|---|
-| ![Main window](docs/capturas/principal.png) | ![Quick phrases](docs/capturas/frases.png) |
+| ![Main window](docs/capturas/en/principal.png) | ![Quick phrases](docs/capturas/en/frases.png) |
 | **Audio library** | **Retro theme** (one of 10) |
-| ![Library](docs/capturas/biblioteca.png) | ![Retro theme](docs/capturas/tema_retro.png) |
+| ![Library](docs/capturas/en/biblioteca.png) | ![Retro theme](docs/capturas/en/tema_retro.png) |
 
-<p align="center"><img src="docs/capturas/ajustes.png" width="520" alt="Settings → Shortcuts"><br><em>Settings → Shortcuts, with the global “speak” shortcut</em></p>
+<p align="center"><img src="docs/capturas/en/ajustes.png" width="520" alt="Settings → Shortcuts"><br><em>Settings → Shortcuts, with the global “speak” shortcut</em></p>
 
 The interface is in **English by default**. To switch to Spanish, go to **Settings → General → Language / Idioma**, choose *Español* and restart the app. 🇪🇸 [Este README en español](README.es.md).
 
