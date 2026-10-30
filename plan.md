@@ -54,7 +54,7 @@ usan como voz). El cambio de idioma se aplica al reiniciar la app.
 - [x] Traducir Ajustes, atajos y el cuadro para decir
   criterio: ajustes.py (secciones General, Audio, Sonido robot y Atajos, con la tabla de atajos y la explicación del atajo global), atajo.py (mensajes visibles) y decir_rapido.py usan `t()`; los nombres de las secciones de Ajustes se muestran traducidos pero la lógica no depende del texto mostrado; gui_smoke abre Ajustes en los dos idiomas
 
-- [ ] Traducir Frases, Pronunciación, Soundboard y Biblioteca
+- [x] Traducir Frases, Pronunciación, Soundboard y Biblioteca
   criterio: frases.py, pronunciacion.py, soundboard.py y biblioteca.py usan `t()` en pestañas, botones, cabeceras, diálogos, confirmaciones y mensajes; los datos del usuario y los de ejemplo guardados en config.json no cambian al cambiar de idioma; gui_smoke recorre esas vistas en los dos idiomas
 
 - [ ] Traducir mensajes y diálogos del sistema
