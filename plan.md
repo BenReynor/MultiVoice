@@ -63,7 +63,7 @@ usan como voz). El cambio de idioma se aplica al reiniciar la app.
 - [x] Sin textos sueltos en español
   criterio: un test de pytest recorre con `ast` todos los .py de la app (fuera de idioma.py y tests/) y falla si encuentra un literal de texto visible en español (con á, é, í, ó, ú, ñ, ¿ o ¡) que no sea un comentario, docstring, voz, nombre de ejemplo o identificador documentado en una lista de excepciones corta y justificada; el test pasa
 
-- [ ] Documentación
+- [x] Documentación
   criterio: README.md (en inglés) dice que la interfaz está en inglés por defecto y se cambia a español en Settings → General, y enlaza «Español» a un README.es.md nuevo con la traducción completa (mismas capturas), que enlaza de vuelta «English»; CONTEXTO.md cambia «Interfaz en español» por «Interfaz en inglés por defecto con español opcional (idioma.py)»
 
 Verificación manual:
