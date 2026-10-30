@@ -45,7 +45,7 @@ usuario escribe (perfiles, frases, categorías, sonidos) ni los identificadores
 guardados en config.json (por ejemplo `🤖 Robot Sound`, que perfiles y frases
 usan como voz). El cambio de idioma se aplica al reiniciar la app.
 
-- [ ] Base de idiomas y selector
+- [x] Base de idiomas y selector
   criterio: existe `idioma.py` con `t(texto, **kwargs)` (texto fuente en inglés, placeholders `{nombre}` con str.format), `set_idioma()`/`idioma()` y el catálogo `_ES` (inglés → español); config.json guarda `"language"` con `"en"` por defecto (un config.json antiguo sin la clave carga como `"en"`); el idioma se fija con `set_idioma` ANTES de construir cualquier widget (nada de `t()` evaluado al importar un módulo: los nombres de pestañas como LIB_TAB, TAB_FRASES, TAB_SOUNDBOARD y TAB_PRONUNCIACION pasan a funciones o se calculan al construir la interfaz); Ajustes → General tiene un selector «Language / Idioma» (English, Español) que guarda la elección y avisa de que se aplica al reiniciar; tests de pytest: t() en inglés y español, entrada que falta → inglés, placeholders, config sin "language" → "en", y un test que recorre los .py del proyecto (con `ast`) y falla si algún literal pasado a `t()` no está en `_ES`
 
 - [ ] Traducir la ventana principal
