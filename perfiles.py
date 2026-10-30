@@ -8,8 +8,9 @@ import copy
 
 import customtkinter as ctk
 
+from idioma import t
+
 CAMPOS = ("engine", "voice", "rate", "pitch", "volume", "metal")
-SIN_PERFIL = "— Sin perfil —"
 
 PERFILES_EJEMPLO = {
     "SCP-079": {"engine": "robot", "voice": "🤖 Robot Sound", "rate": -15,
@@ -17,6 +18,11 @@ PERFILES_EJEMPLO = {
     "Narrador": {"engine": "edge", "voice": "es-MX-JorgeNeural", "rate": -5,
                  "pitch": -10, "volume": 0, "metal": 0},
 }
+
+
+def sin_perfil():
+    """Texto del desplegable cuando no hay perfil activo (según el idioma)."""
+    return t("— No profile —")
 
 
 def ejemplos():
@@ -70,7 +76,7 @@ def guardar(cfg, nombre, datos):
     """Crea o sobrescribe un perfil. Devuelve el nombre limpio."""
     nombre = (nombre or "").strip()
     if not nombre:
-        raise ValueError("El perfil necesita un nombre")
+        raise ValueError(t("The profile needs a name"))
     asegurar(cfg)[nombre] = normalizar(datos)
     return nombre
 
@@ -81,9 +87,9 @@ def renombrar(cfg, viejo, nuevo):
     if viejo not in perfiles:
         raise KeyError(viejo)
     if not nuevo:
-        raise ValueError("El perfil necesita un nombre")
+        raise ValueError(t("The profile needs a name"))
     if nuevo != viejo and nuevo in perfiles:
-        raise ValueError(f"Ya existe un perfil «{nuevo}»")
+        raise ValueError(t("A profile «{name}» already exists", name=nuevo))
     cfg["profiles"] = {(nuevo if n == viejo else n): p
                        for n, p in perfiles.items()}
     if cfg.get("active_profile") == viejo:
@@ -105,10 +111,10 @@ class PerfilesMixin:
     def _build_perfiles(self, parent):
         h = self._px("--control-h", 36)
         self.lbl_profile = ctk.CTkLabel(
-            parent, text="Perfil", font=self.font(self._px("--fs-md", 13), True))
+            parent, text=t("Profile"), font=self.font(self._px("--fs-md", 13), True))
         self.lbl_profile.pack(side="left", padx=(0, 8))
         self.profile_menu = ctk.CTkOptionMenu(
-            parent, values=[SIN_PERFIL], width=150, height=h,
+            parent, values=[sin_perfil()], width=150, height=h,
             corner_radius=self._px("--radius", 8), font=self.font(),
             dropdown_font=self.font(), command=self._on_profile_selected)
         self.profile_menu.pack(side="left")
@@ -129,8 +135,8 @@ class PerfilesMixin:
     def _refresh_profiles(self):
         activo = self.cfg.get("active_profile", "")
         lista = nombres(self.cfg)
-        self.profile_menu.configure(values=lista or [SIN_PERFIL])
-        self.profile_menu.set(activo if activo in lista else SIN_PERFIL)
+        self.profile_menu.configure(values=lista or [sin_perfil()])
+        self.profile_menu.set(activo if activo in lista else sin_perfil())
 
     def _profile_snapshot(self):
         v = self.current_voice()
@@ -158,7 +164,7 @@ class PerfilesMixin:
         self._on_voice_changed()
         self.cfg["active_profile"] = nombre
         self._save_soon()
-        self.set_status(f"🎭 Perfil «{nombre}» aplicado")
+        self.set_status(t("🎭 Profile «{name}» applied", name=nombre))
         return True
 
     @staticmethod
@@ -167,7 +173,7 @@ class PerfilesMixin:
         return list(ENGINES)
 
     def _on_profile_selected(self, nombre):
-        if nombre == SIN_PERFIL:
+        if nombre == sin_perfil():
             self.cfg["active_profile"] = ""
             self._save_soon()
         else:
@@ -183,28 +189,28 @@ class PerfilesMixin:
         return (dlg.get_input() or "").strip()
 
     def profile_save_new(self):
-        nombre = self._pedir_nombre("Nuevo perfil", "Nombre del perfil:")
+        nombre = self._pedir_nombre(t("New profile"), t("Profile name:"))
         if not nombre:
             return
         guardar(self.cfg, nombre, self._profile_snapshot())
         self.cfg["active_profile"] = nombre
         self._save_soon()
         self._refresh_profiles()
-        self.set_status(f"🎭 Perfil «{nombre}» guardado")
+        self.set_status(t("🎭 Profile «{name}» saved", name=nombre))
 
     def profile_update(self):
         nombre = self.profile_menu.get()
-        if nombre == SIN_PERFIL:
+        if nombre == sin_perfil():
             return self.profile_save_new()
         guardar(self.cfg, nombre, self._profile_snapshot())
         self._save_soon()
-        self.set_status(f"🎭 Perfil «{nombre}» actualizado")
+        self.set_status(t("🎭 Profile «{name}» updated", name=nombre))
 
     def profile_rename(self):
         viejo = self.profile_menu.get()
-        if viejo == SIN_PERFIL:
+        if viejo == sin_perfil():
             return
-        nuevo = self._pedir_nombre("Renombrar perfil", "Nuevo nombre:", viejo)
+        nuevo = self._pedir_nombre(t("Rename profile"), t("New name:"), viejo)
         if not nuevo or nuevo == viejo:
             return
         try:
@@ -214,12 +220,12 @@ class PerfilesMixin:
             return
         self._save_soon()
         self._refresh_profiles()
-        self.set_status(f"🎭 Perfil renombrado a «{nuevo}»")
+        self.set_status(t("🎭 Profile renamed to «{name}»", name=nuevo))
 
     def profile_delete(self):
         nombre = self.profile_menu.get()
-        if nombre == SIN_PERFIL or not borrar(self.cfg, nombre):
+        if nombre == sin_perfil() or not borrar(self.cfg, nombre):
             return
         self._save_soon()
         self._refresh_profiles()
-        self.set_status(f"🎭 Perfil «{nombre}» borrado")
+        self.set_status(t("🎭 Profile «{name}» deleted", name=nombre))

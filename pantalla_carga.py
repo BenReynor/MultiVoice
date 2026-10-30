@@ -7,6 +7,7 @@ import tkinter as tk
 import customtkinter as ctk
 
 import platform_utils as pu
+from idioma import t
 
 FONDO = "#0f172a"
 TEXTO = "#e2e8f0"
@@ -37,7 +38,7 @@ class PantallaCarga:
         ctk.CTkLabel(self.win, text="MultiVoice", text_color=TEXTO, fg_color=FONDO,
                      font=ctk.CTkFont(family=pu.UI_FONT, size=20, weight="bold")
                      ).pack()
-        self.lbl = ctk.CTkLabel(self.win, text="", text_color=TENUE, fg_color=FONDO,
+        self.lbl = ctk.CTkLabel(self.win, text=t("Starting…"), text_color=TENUE, fg_color=FONDO,
                                 font=ctk.CTkFont(family=pu.UI_FONT, size=12))
         self.lbl.pack(side="bottom", pady=(4, 20))
         self.barra = ctk.CTkProgressBar(self.win, width=300, height=10,

@@ -7,6 +7,7 @@ import tkinter as tk
 import customtkinter as ctk
 
 from cola import recortar
+from idioma import t
 
 REFRESCO_MS = 80
 CARACTERES_FILA = 46
@@ -28,7 +29,7 @@ class ColaMixin:
         caja.pack(fill="both", expand=True, padx=12, pady=10)
 
         # ---- Ahora suena ----
-        self.lbl_ahora = self._titulo_panel(caja, "Ahora suena")
+        self.lbl_ahora = self._titulo_panel(caja, t("Now playing"))
         self.now_text = ctk.CTkLabel(caja, text="", anchor="w", justify="left",
                                      wraplength=ancho - 50, font=self.font(fs))
         self.now_text.pack(fill="x", pady=(4, 0))
@@ -40,7 +41,7 @@ class ColaMixin:
         self.now_bar.pack(fill="x", pady=(6, 0))
         fila_nivel = ctk.CTkFrame(caja, fg_color="transparent")
         fila_nivel.pack(fill="x", pady=(6, 0))
-        self.lbl_nivel = ctk.CTkLabel(fila_nivel, text="Nivel", width=44,
+        self.lbl_nivel = ctk.CTkLabel(fila_nivel, text=t("Level"), width=44,
                                       anchor="w", font=self.font(fs - 1))
         self.lbl_nivel.pack(side="left")
         self.level_bar = ctk.CTkProgressBar(fila_nivel, height=8)
@@ -53,18 +54,18 @@ class ColaMixin:
         self._reg(self.level_bar, self._paint_barra)
 
         # ---- En cola ----
-        self.lbl_cola = self._titulo_panel(caja, "En cola", pady=(14, 0))
+        self.lbl_cola = self._titulo_panel(caja, t("Queued"), pady=(14, 0))
         self.cola_list = self._lista_panel(caja, 118)
 
         # ---- Historial ----
         cab = ctk.CTkFrame(caja, fg_color="transparent")
         cab.pack(fill="x", pady=(14, 0))
-        self.lbl_hist = ctk.CTkLabel(cab, text="Historial", anchor="w",
+        self.lbl_hist = ctk.CTkLabel(cab, text=t("History"), anchor="w",
                                      font=self.font(fs, True))
         self.lbl_hist.pack(side="left")
         self._reg(self.lbl_hist, lambda w: w.configure(
             text_color=self._col("--text")))
-        self.btn_hist_clear = self._btn(cab, "Limpiar", self._limpiar_historial,
+        self.btn_hist_clear = self._btn(cab, t("Clear"), self._limpiar_historial,
                                         height=28)
         self.btn_hist_clear.pack(side="right")
         self.hist_list = self._lista_panel(caja, 0, expand=True)
@@ -97,7 +98,7 @@ class ColaMixin:
             return
         sonando, pendientes, historial = self.worker.cola.instantanea()
         if sonando is None:
-            self.now_text.configure(text="Nada suena ahora")
+            self.now_text.configure(text=t("Nothing is playing"))
             self.now_voice.configure(text="")
             self.now_bar.set(0)
         else:
@@ -108,14 +109,14 @@ class ColaMixin:
         if claves == self._cola_claves and not forzar:
             return
         self._cola_claves = claves
-        self.lbl_cola.configure(text=f"En cola ({len(pendientes)})")
-        self.lbl_hist.configure(text=f"Historial ({len(historial)})")
+        self.lbl_cola.configure(text=t("Queued ({n})", n=len(pendientes)))
+        self.lbl_hist.configure(text=t("History ({n})", n=len(historial)))
         self.btn_hist_clear.configure(
             state="normal" if historial else "disabled")
         self._llenar_lista(self.cola_list, pendientes, "✕", self._quitar_de_cola,
-                           "La cola está vacía")
+                           t("The queue is empty"))
         self._llenar_lista(self.hist_list, historial, "↻", self._repetir,
-                           "Aún no has dicho nada en esta sesión")
+                           t("You haven't said anything yet this session"))
 
     def _llenar_lista(self, lista, elementos, icono, comando, vacio):
         for w in lista.winfo_children():
@@ -178,7 +179,7 @@ class ColaMixin:
     # ---------- Acciones ----------
     def _quitar_de_cola(self, id_):
         if self.worker.cola.quitar(id_):
-            self.set_status("🗑 Quitado de la cola")
+            self.set_status(t("🗑 Removed from the queue"))
         self._refresh_cola()
 
     def _repetir(self, id_):
@@ -187,7 +188,7 @@ class ColaMixin:
             return
         job["queue"] = self.queue_var.get()
         self.worker.enqueue(job)
-        self.set_status("🔁 Repitiendo: " + recortar(job["text"], 40))
+        self.set_status(t("🔁 Repeating: {text}", text=recortar(job["text"], 40)))
 
     def _limpiar_historial(self):
         self.worker.cola.limpiar_historial()

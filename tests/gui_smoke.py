@@ -2,15 +2,28 @@
 import json
 import os
 import queue
+import subprocess
 import sys
 import tempfile
 
-import customtkinter as ctk
+IDIOMA = os.environ.get("MV_SMOKE_LANG")
+if IDIOMA is None:
+    # Sin idioma indicado: repite el smoke completo en inglés y en español
+    # (en procesos aparte, cada uno con su propio idioma y configuración).
+    for codigo in ("en", "es"):
+        p = subprocess.run([sys.executable, os.path.abspath(__file__)],
+                           env=dict(os.environ, MV_SMOKE_LANG=codigo))
+        if p.returncode != 0:
+            sys.exit(p.returncode)
+    sys.exit(0)
+
+import customtkinter as ctk  # noqa: E402
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import multivoice as mv  # noqa: E402
 import temas  # noqa: E402
+from idioma import t  # noqa: E402
 
 tmp = tempfile.mkdtemp(prefix="mv_gui_")
 mv.CONFIG_DIR = tmp
@@ -23,7 +36,9 @@ mv.teardown_virtual_mic = lambda ids: None
 # «hacker» es un nombre antiguo que pasa a Cyberpunk.
 os.makedirs(os.path.dirname(mv.CONFIG_PATH), exist_ok=True)
 with open(mv.CONFIG_PATH, "w", encoding="utf-8") as f:
-    f.write('{"theme": "hacker"}')
+    # «en» se prueba con la configuración por defecto (sin la clave "language")
+    f.write('{"theme": "hacker", "language": "es"}' if IDIOMA == "es"
+            else '{"theme": "hacker"}')
 
 root = ctk.CTk()
 # Arranque como en main(): ventana oculta y pantalla de carga con el avance.
@@ -50,6 +65,12 @@ assert app.btn_speak.cget("text_color") == pal["--accent-text"]
 assert app.btn_stop.cget("fg_color") == pal["--surface-2"], "tema no aplicado al arrancar"
 assert app.status.cget("text_color") == pal["--text-2"], "estado sin colorear"
 assert app.status.cget("text").strip(), "la barra de estado está vacía"
+# Idioma: inglés por defecto y español con "language": "es"
+assert app.cfg["language"] == IDIOMA, app.cfg["language"]
+assert app.btn_speak.cget("text").endswith("Hablar" if IDIOMA == "es" else "Speak"), \
+    app.btn_speak.cget("text")
+assert app.btn_stop.cget("text").endswith("Detener" if IDIOMA == "es" else "Stop")
+assert app.lbl_engine.cget("text") == ("Motor" if IDIOMA == "es" else "Engine")
 
 # Cada tema (y cada modo) se aplica sin error y cambia los colores
 for tema, _nombre in temas.lista_temas():
@@ -149,11 +170,11 @@ app.worker.enqueue(dict(app.build_job("Primer texto muy largo " * 10), queue=Tru
 app.worker.enqueue(dict(app.build_job("Segundo texto"), queue=True))
 e2 = cola.instantanea()[1][-1]
 root.update()
-assert "En cola (2)" in app.lbl_cola.cget("text")
+assert t("Queued ({n})", n=2) in app.lbl_cola.cget("text")
 assert len(app.cola_list.winfo_children()) == 2
 app._quitar_de_cola(e2.id)
 root.update()
-assert "En cola (1)" in app.lbl_cola.cget("text")
+assert t("Queued ({n})", n=1) in app.lbl_cola.cget("text")
 cola.avanzar()
 cola.iniciar_audio(1.0, [0.8] * 30)
 app._refresh_cola()
@@ -163,10 +184,10 @@ assert app._nivel_visible > 0, "el medidor no se mueve mientras suena"
 cola.terminar()
 app._refresh_cola()
 root.update()
-assert "Historial (1)" in app.lbl_hist.cget("text")
+assert t("History ({n})", n=1) in app.lbl_hist.cget("text")
 app._repetir(cola.instantanea()[2][0].id)
 root.update()
-assert "En cola (1)" in app.lbl_cola.cget("text"), "repetir no encola"
+assert t("Queued ({n})", n=1) in app.lbl_cola.cget("text"), "repetir no encola"
 app.set_theme("minimal")             # el panel se repinta sin errores
 root.update()
 # perfiles: desplegable con los de ejemplo, aplicar, guardar, renombrar, borrar
@@ -258,4 +279,4 @@ app.settings_win.destroy()
 app._save_soon()
 app.on_close()
 assert os.path.isfile(mv.CONFIG_PATH), "config.json no se escribió"
-print(f"GUI SMOKE OK ({sys.platform}, tema={app.theme})")
+print(f"GUI SMOKE OK ({sys.platform}, idioma={IDIOMA}, tema={app.theme})")

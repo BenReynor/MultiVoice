@@ -38,6 +38,7 @@ from pronunciacion import PronunciacionMixin
 import soundboard
 from soundboard import SoundboardMixin
 import platform_utils as pu
+from idioma import t
 from virtualmic import setup_virtual_mic, teardown_virtual_mic
 
 CONFIG_DIR = pu.config_dir()
@@ -149,7 +150,7 @@ class SpeechWorker:
             completado = False
             self._changed()
             self.busy = True
-            self.status_cb("🔊 Hablando...")
+            self.status_cb(t("🔊 Speaking..."))
             self.cancel_event.clear()
             tmp_dir = tempfile.mkdtemp(prefix="multivoice_")
             tmp = os.path.join(tmp_dir, "speech.wav")
@@ -177,10 +178,10 @@ class SpeechWorker:
                         self.on_clear(job.get("widget"))
                     if job.get("widget") is not None and self.on_save:
                         self.on_save(job)
-                    self.status_cb("✅ Listo")
+                    self.status_cb(t("✅ Done"))
             except Exception as e:
                 if not self.stop_requested:
-                    self.status_cb(f"⚠️ Error: {e}")
+                    self.status_cb(t("⚠️ Error: {error}", error=e))
             finally:
                 shutil.rmtree(tmp_dir, ignore_errors=True)
                 self.cola.terminar(completado)
@@ -212,7 +213,7 @@ class SpeechWorker:
         self._changed()
 
     def stop(self):
-        self.status_cb("⏹ Detenido")
+        self.status_cb(t("⏹ Stopped"))
         with self.lock:
             for p in self.procs:
                 try:
@@ -237,9 +238,9 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
     def __init__(self, root, progreso=None):
         self.root = root
         avance = progreso or (lambda texto, fraccion: None)
-        avance("Leyendo tu configuración…", 0.05)
         self.cfg = load_config()
         idioma.set_idioma(self.cfg.get("language"))
+        avance(t("Reading your settings…"), 0.05)
         self._save_job = None
         self.theme, self.mode = temas.traducir_nombre(
             self.cfg.get("theme"), self.cfg.get("theme_mode"))
@@ -250,14 +251,14 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
         self.current_engine = self.cfg.get("engine", "edge")
         if self.current_engine not in ENGINES:
             self.current_engine = "edge"
-        avance("Cargando voces…", 0.12)
+        avance(t("Loading voices…"), 0.12)
         self._reload_voices()
 
         self.tab_texts = {}
         self.tab_counter = 0
         self._paints = []
 
-        avance("Creando el micrófono virtual…", 0.25)
+        avance(t("Creating the virtual microphone…"), 0.25)
         self.mic_ids = setup_virtual_mic()
 
         self.worker = SpeechWorker(
@@ -271,18 +272,18 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
 
         self.style = ttk.Style()
         self.style.theme_use("clam")
-        avance("Preparando la ventana…", 0.4)
+        avance(t("Preparing the window…"), 0.4)
         self._build_ui()
         self.add_tab()
-        avance("Cargando frases rápidas…", 0.55)
+        avance(t("Loading quick phrases…"), 0.55)
         self._build_frases_tab()
-        avance("Cargando el diccionario…", 0.63)
+        avance(t("Loading the dictionary…"), 0.63)
         self._build_pronunciacion_tab()
-        avance("Cargando el soundboard…", 0.7)
+        avance(t("Loading the soundboard…"), 0.7)
         self._build_soundboard_tab()
-        avance("Cargando la biblioteca…", 0.78)
+        avance(t("Loading the library…"), 0.78)
         self._build_library_tab()
-        avance("Aplicando el tema…", 0.88)
+        avance(t("Applying the theme…"), 0.88)
         self.apply_theme()
         self._cleanup_library()
 
@@ -298,9 +299,9 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
         self.metal_slider.set(self.cfg.get("robot_metal", 70))
         self._on_metal(self.cfg.get("robot_metal", 70))
         self._on_voice_changed()
-        self.set_status("✅ Listo: elige motor y voz")
+        self.set_status(t("✅ Ready: pick an engine and a voice"))
         self._announce_virtual_device()
-        avance("Listo", 1.0)
+        avance(t("Ready"), 1.0)
 
     def _save_soon(self):
         """Debounced config write: sliders fire dozens of events per drag."""
@@ -326,9 +327,9 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
             return
         found = tts_engine.find_virtual_output()
         if found:
-            self.set_status(f"🎤 Cable virtual: {found[1]}")
+            self.set_status(t("🎤 Virtual cable: {name}", name=found[1]))
         else:
-            self.set_status("Sin cable virtual: instala VB-CABLE")
+            self.set_status(t("No virtual cable: install VB-CABLE"))
 
     def _reload_voices(self):
         """Reload the voice list for the current engine."""
@@ -393,7 +394,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
         self.title_label = ctk.CTkLabel(self.top, text="🎙 MultiVoice",
                                         font=self.font(fs + 5, True))
         self.title_label.pack(side="left", padx=16)
-        self.btn_settings = self._btn(self.top, "⚙ Ajustes", self.open_settings)
+        self.btn_settings = self._btn(self.top, t("⚙ Settings"), self.open_settings)
         self.btn_settings.pack(side="right", padx=(6, 16), pady=6)
         self.theme_entries = self._theme_entries()
         self.theme_menu = ctk.CTkOptionMenu(
@@ -401,7 +402,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
             corner_radius=r, font=self.font(), dropdown_font=self.font(),
             command=self._on_theme_selected)
         self.theme_menu.pack(side="right", pady=6)
-        self.lbl_theme = ctk.CTkLabel(self.top, text="Tema", font=self.font())
+        self.lbl_theme = ctk.CTkLabel(self.top, text=t("Theme"), font=self.font())
         self.lbl_theme.pack(side="right", padx=(0, 8))
         self._reg(self.top, lambda w: w.configure(fg_color=self._col("--surface")))
         self._reg(self.title_label, lambda w: w.configure(
@@ -427,7 +428,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
         self._reg(self.voice_card, self._paint_card)
         inner = ctk.CTkFrame(self.voice_card, fg_color="transparent")
         inner.pack(fill="x", padx=14, pady=(10, 8))
-        self.lbl_engine = ctk.CTkLabel(inner, text="Motor",
+        self.lbl_engine = ctk.CTkLabel(inner, text=t("Engine"),
                                        font=self.font(fs, True))
         self.lbl_engine.pack(side="left", padx=(0, 8))
         self.engine_menu = ctk.CTkOptionMenu(
@@ -435,9 +436,9 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
             corner_radius=r, font=self.font(), dropdown_font=self.font(),
             command=self._on_engine_selected)
         self.engine_menu.pack(side="left", padx=(0, 12))
-        self.lbl_voice = ctk.CTkLabel(inner, text="Voz", font=self.font(fs, True))
+        self.lbl_voice = ctk.CTkLabel(inner, text=t("Voice"), font=self.font(fs, True))
         self.lbl_voice.pack(side="left", padx=(0, 8))
-        self.btn_probe = self._btn(inner, "👂 Probar", self.probe_voice)
+        self.btn_probe = self._btn(inner, t("👂 Test"), self.probe_voice)
         self.btn_probe.pack(side="right", padx=(10, 0))
         self.voice_combo = ctk.CTkComboBox(
             inner, state="readonly", height=h, corner_radius=r,
@@ -466,10 +467,10 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
         self.slider_labels = {}
         self.slider_rows = {}
         # (clave, título, mínimo, máximo)
-        for key, name, lo, hi in (("rate", "Velocidad", -50, 100),
-                                  ("pitch", "Tono", -50, 50),
-                                  ("volume", "Volumen", -50, 50),
-                                  ("metal", "Metal", 0, 100)):
+        for key, name, lo, hi in (("rate", t("Speed"), -50, 100),
+                                  ("pitch", t("Pitch"), -50, 50),
+                                  ("volume", t("Volume"), -50, 50),
+                                  ("metal", t("Metal"), 0, 100)):
             self._slider_row(key, name, lo, hi)
         self.metal_slider = self.sliders.pop("metal")
         self.metal_value = self.slider_labels.pop("metal")
@@ -493,9 +494,9 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
                          before=self.tabview)
         opts = ctk.CTkFrame(self.bottom, fg_color="transparent")
         opts.pack(fill="x")
-        self.btn_add = self._btn(opts, "＋ Nueva", self.add_tab)
+        self.btn_add = self._btn(opts, t("＋ New"), self.add_tab)
         self.btn_add.pack(side="left", padx=(0, 6))
-        self.btn_del = self._btn(opts, "✕ Cerrar", self.delete_current_tab)
+        self.btn_del = self._btn(opts, t("✕ Close"), self.delete_current_tab)
         self.btn_del.pack(side="left")
         self.auto_clear_var = tk.BooleanVar(value=self.cfg.get("auto_clear", True))
         self.queue_var = tk.BooleanVar(value=self.cfg.get("queue_enabled", True))
@@ -505,10 +506,10 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
         # y «Escucharme» quedaba fuera de la ventana.
         checks = ctk.CTkFrame(self.bottom, fg_color="transparent")
         checks.pack(fill="x", pady=(6, 0))
-        for text, var in (("Borrar al hablar", self.auto_clear_var),
-                          ("Encolar audios", self.queue_var),
-                          ("Guardado automático", self.auto_save_var),
-                          ("Escucharme", self.listen_var)):
+        for text, var in ((t("Clear after speaking"), self.auto_clear_var),
+                          (t("Queue audio"), self.queue_var),
+                          (t("Auto-save"), self.auto_save_var),
+                          (t("Hear myself"), self.listen_var)):
             cb = ctk.CTkCheckBox(checks, text=text, variable=var, font=self.font(),
                                  command=self._persist_flags)
             cb.pack(side="left", padx=(0, 12))
@@ -516,13 +517,13 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
 
         actions = ctk.CTkFrame(self.bottom, fg_color="transparent")
         actions.pack(fill="x", pady=(8, 0))
-        self.btn_speak = self._btn(actions, "🔊 Hablar", self.speak_current,
+        self.btn_speak = self._btn(actions, t("🔊 Speak"), self.speak_current,
                                    accent=True, height=h + 16, big=True)
         self.btn_speak.pack(side="left", fill="x", expand=True)
-        self.btn_stop = self._btn(actions, "⏹ Detener",
+        self.btn_stop = self._btn(actions, t("⏹ Stop"),
                                   lambda: self.worker.stop(), height=h + 16)
         self.btn_stop.pack(side="left", padx=(8, 0))
-        self.btn_save = self._btn(actions, "💾 Guardar", self.save_audio,
+        self.btn_save = self._btn(actions, t("💾 Save"), self.save_audio,
                                   height=h + 16)
         self.btn_save.pack(side="left", padx=(8, 0))
         self._reg(self.hint, lambda w: self._paint_hint())
@@ -642,24 +643,24 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
     def _theme_entries(self):
         """(etiqueta, tema, modo) de cada tema elegible."""
         out = []
-        for t, nombre in temas.lista_temas():
-            ms = temas.modos(t)
+        for tema, nombre in temas.lista_temas():
+            ms = temas.modos(tema)
             if ms:
-                out += [(f"{nombre} · {m}", t, m) for m in ms]
+                out += [(f"{nombre} · {m}", tema, m) for m in ms]
             else:
-                out.append((nombre, t, None))
+                out.append((nombre, tema, None))
         return out
 
     def _theme_label(self):
-        for label, t, m in self.theme_entries:
-            if (t, m) == (self.theme, self.mode):
+        for label, tema, m in self.theme_entries:
+            if (tema, m) == (self.theme, self.mode):
                 return label
         return self.theme_entries[0][0]
 
     def _on_theme_selected(self, label):
-        for lab, t, m in self.theme_entries:
+        for lab, tema, m in self.theme_entries:
             if lab == label:
-                self.set_theme(t, m)
+                self.set_theme(tema, m)
                 return
 
     def set_theme(self, tema, modo=None):
@@ -776,16 +777,16 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
                 self._set_slider("rate", -15)
             if self.sliders["pitch"].get() == 0:
                 self._set_slider("pitch", -25)
-            self.hint.configure(text="🤖 Sonido robot: voz grave y robótica. "
-                                     "Sube «Metal» para más distorsión.")
+            self.hint.configure(text=t("🤖 Robot sound: deep, robotic voice. "
+                                       "Raise «Metal» for more distortion."))
         elif engine == "edge":
-            self.hint.configure(text="✨ Voces neuronales (necesitan internet). "
-                                     "Microsoft Edge: 14 voces en español.")
+            self.hint.configure(text=t("✨ Neural voices (need internet). "
+                                       "Microsoft Edge: 14 Spanish voices."))
         elif engine == "gtts":
-            self.hint.configure(text="🌐 Google TTS (necesita internet). "
-                                     "Varios idiomas; sin ajustes de voz.")
+            self.hint.configure(text=t("🌐 Google TTS (needs internet). "
+                                       "Several languages; no voice settings."))
         else:
-            self.hint.configure(text="✨ Voces disponibles.")
+            self.hint.configure(text=t("✨ Voices available."))
         self._paint_hint()
         self.cfg["voice"] = self.voice_combo.get()
         self._save_soon()
@@ -851,7 +852,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
     def speak(self, text_widget):
         text = text_widget.get("1.0", tk.END).strip()
         if not text:
-            self.set_status("⚠️ Escribe algo antes de hablar")
+            self.set_status(t("⚠️ Type something before speaking"))
             return
         clear = self.auto_clear_var.get()
         job = self.build_job(text, widget=text_widget, clear_after=clear)
@@ -875,7 +876,7 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
             text = text_widget.get("1.0", tk.END).strip()
             if not text:
                 if not auto:
-                    self.set_status("⚠️ No hay nada que guardar")
+                    self.set_status(t("⚠️ There is nothing to save"))
                 return
             job = self.build_job(text)
         text = job["text"]
@@ -911,14 +912,14 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
                 with open(path + ".json", "w", encoding="utf-8") as f:
                     json.dump(meta, f, ensure_ascii=False, indent=2)
                 self.root.after(0, lambda: self.set_status(
-                    f"✅ Guardado: {os.path.basename(path)}"))
+                    t("✅ Saved: {name}", name=os.path.basename(path))))
             except Exception as exc:
                 msg = str(exc)
-                self.root.after(0, lambda: self.set_status(f"⚠️ Error: {msg}"))
+                self.root.after(0, lambda: self.set_status(t("⚠️ Error: {error}", error=msg)))
 
         threading.Thread(target=run, daemon=True).start()
         if not auto:
-            self.set_status("💾 Guardando...")
+            self.set_status(t("💾 Saving..."))
 
     # Auto-save trigger (called after speak finishes)
     def maybe_auto_save(self, job):
@@ -928,10 +929,10 @@ class TTSApp(AjustesMixin, BibliotecaMixin, ColaMixin, PerfilesMixin,
     # ---------- Pestañas ----------
     def add_tab(self):
         if len(self.tab_texts) >= self.cfg.get("max_tabs", 5):
-            self.set_status("⚠️ Máximo de pestañas alcanzado")
+            self.set_status(t("⚠️ Maximum number of tabs reached"))
             return
         self.tab_counter += 1
-        name = f"Voz {self.tab_counter}"
+        name = t("Voice {n}", n=self.tab_counter)
         tab = self.tabview.add(name)
         text = ctk.CTkTextbox(tab, wrap="word", border_width=1,
                               font=ctk.CTkFont(family=pu.TEXT_FONT, size=14),
