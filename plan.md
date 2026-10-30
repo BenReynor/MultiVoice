@@ -60,7 +60,7 @@ usan como voz). El cambio de idioma se aplica al reiniciar la app.
 - [x] Traducir mensajes y diálogos del sistema
   criterio: los mensajes que ve el usuario desde tts_engine.py, virtualmic.py, library.py, instancia.py y platform_utils.py (errores, avisos de micrófono virtual o de VB-CABLE, títulos de diálogos de archivos y messagebox) usan `t()`; tests/smoke_test.py sigue pasando
 
-- [ ] Sin textos sueltos en español
+- [x] Sin textos sueltos en español
   criterio: un test de pytest recorre con `ast` todos los .py de la app (fuera de idioma.py y tests/) y falla si encuentra un literal de texto visible en español (con á, é, í, ó, ú, ñ, ¿ o ¡) que no sea un comentario, docstring, voz, nombre de ejemplo o identificador documentado en una lista de excepciones corta y justificada; el test pasa
 
 - [ ] Documentación
