@@ -69,3 +69,109 @@ usan como voz). El cambio de idioma se aplica al reiniciar la app.
 Verificación manual:
 - Abrir MultiVoice: todo en inglés. Settings → Language → Español, reiniciar: todo en español.
 - Hablar, perfiles, frases y soundboard funcionan igual en los dos idiomas.
+
+## FASE 4 — Cientos de voces y voces más fiables
+
+MultiVoice pasa de 14 voces en español a cientos en todos los idiomas, añade voces
+**sin internet** que se descargan solo si el usuario las elige (el programa no
+pesa más) y deja de quedarse callado sin red. Reglas para toda la fase: los tests
+nunca usan la red (listas de voces y descargas simuladas), los textos nuevos van
+con `t()` y su entrada en `_ES`, y todo funciona igual en Linux y Windows.
+
+- [ ] Todas las voces de Edge, en todos los idiomas
+  criterio: la lista de voces de Edge sale de `edge_tts.list_voices()` (todas las locales, no solo español) y se guarda en caché en la carpeta de config (se refresca como mucho una vez al día; sin red se usa la caché y, si no hay, la lista española actual de respaldo); cada voz tiene idioma, país, género y nombre legible; el texto de ayuda del motor deja de decir «14 Spanish voices» y muestra el total real; perfiles y frases con voces antiguas siguen funcionando; tests con una lista simulada (agrupar por idioma, caché vigente/caducada, sin red)
+
+- [ ] Selector de voces con idioma, buscador, escucha previa y favoritas
+  criterio: siguiendo las skills ui-tokens y diseno-escritorio, el desplegable de voz se sustituye por un selector con filtro de idioma (por defecto el de la interfaz), filtro de motor, buscador (nombre, idioma, país), botón ▶ para escuchar una frase de prueba sin elegirla, estrella de favoritas (guardadas en config.json y mostradas arriba) y marcas «sin internet» / «requiere descarga»; se abre también con un atajo de teclado; gui_smoke abre el selector, filtra, marca una favorita y elige una voz
+
+- [ ] Voces locales Piper descargables
+  criterio: nuevo motor «Piper (offline)»; MultiVoice no incluye Piper: al elegirlo por primera vez ofrece descargar el ejecutable oficial de Piper para el sistema (Linux x86_64/arm64, Windows x64) y cada voz se descarga al elegirla (catálogo oficial de voces con idioma, calidad y tamaño), con barra de progreso, cancelar, comprobación SHA-256 y carpeta de datos del usuario; Ajustes → Voces lista las voces descargadas con su tamaño y permite borrarlas; la síntesis usa el mismo paso final de ffmpeg que los otros motores; tests con descargas simuladas (catálogo, suma correcta/incorrecta, cancelar) y un test que sintetiza con un ejecutable Piper falso
+
+- [ ] Voces del sistema en Windows y más robots
+  criterio: en Windows, nuevo motor «Windows voices» que lista y usa las voces instaladas del sistema mediante System.Speech (PowerShell, sin dependencias nuevas) y escribe un WAV que pasa por el paso final de ffmpeg; en Linux el motor no aparece; el robot (espeak-ng) ofrece variantes (voces e idiomas de espeak-ng y sus variantes como susurro o ronco) además del sonido robot actual; tests: comando de PowerShell generado (sin ejecutarlo fuera de Windows), lista de variantes de espeak-ng simulada
+
+- [ ] Plan B sin conexión
+  criterio: si Edge o Google fallan por falta de red o error del servicio, el texto se dice con una voz local (la elegida en Ajustes → Audio «Offline fallback voice»: una voz Piper descargada o el robot) y la barra de estado avisa una vez («Sin conexión: usando voz local»); se puede desactivar; el fallo no bloquea la cola ni la interfaz; tests con el motor online simulado fallando (usa la voz de respaldo, avisa una sola vez, desactivado = error como hoy)
+
+- [ ] Hablar mientras se genera y caché de audio
+  criterio: un texto largo se parte por frases y empieza a sonar en cuanto está la primera mientras se generan las siguientes (sin cortes audibles entre frases ni cambios de orden); una caché local guarda cada audio generado con clave (motor, voz, ajustes, efectos, texto), con tope de tamaño configurable (por defecto 200 MB, se borra lo más antiguo) y botón «Vaciar caché» en Ajustes; repetir una frase rápida o del historial suena al instante; las frases rápidas se pregeneran en segundo plano al elegir perfil; tests: partir frases (abreviaturas, signos ¿?¡!, números), orden de reproducción, acierto/fallo de caché, tope de tamaño
+
+- [ ] Volumen igualado y botón Callar global
+  criterio: el paso final de ffmpeg normaliza el volumen (loudnorm) para que todos los motores suenen parejos; opción en Ajustes → Audio (activada por defecto); «Detener» corta lo que suena y vacía la cola y tiene un atajo global: en Windows registrado por la app y en Linux mediante `multivoice --callar` (mismo mecanismo de instancia única que `--decir`), mostrado en Ajustes → Atajos con el botón de GNOME como el atajo de decir; tests de la orden `--callar` por instancia única y del filtro de normalización generado
+
+Verificación manual:
+- Elegir una voz en inglés y otra en japonés de Edge; marcar favoritas.
+- Descargar una voz Piper en español y hablar con el Wi-Fi apagado; con una voz de Edge y sin red, comprobar el plan B.
+- Pegar un texto de 10 frases: empieza a sonar enseguida. Repetir una frase rápida: suena al instante.
+- Atajo de Callar en mitad de un texto largo.
+
+## FASE 5 — Laboratorio de voces: efectos, etiquetas y paquetes
+
+MultiVoice como un «Loquendo moderno»: cualquier voz se convierte en un personaje
+con efectos encadenables, y el texto puede cambiar de voz, hacer pausas y meter
+sonidos a mitad de frase. Todos los efectos se aplican con ffmpeg (ya incluido),
+así que funcionan con todos los motores.
+
+- [ ] Motor de efectos encadenables
+  criterio: módulo `efectos.py` con un catálogo de efectos (id, nombre con `t()`, categoría, parámetro de intensidad 0–100) que genera la cadena de filtros de ffmpeg: tono y ritmo (tono, velocidad, vibrato, temblor), robots (robot/metal actual, alien, 8 bits, distorsión, radio militar), personajes (demonio, ardilla, gigante, fantasma, susurro, coro), lugares (eco, cueva, sala, catedral, baño, bajo el agua, exterior) y aparatos (teléfono, radio vieja, megáfono, walkie-talkie, estadio); un perfil guarda una lista ordenada de efectos con su intensidad (`efectos` en config.json); el «metal» actual del robot se migra a un efecto sin cambiar cómo suena; tests: cada efecto genera un filtro válido (ffmpeg lo acepta con un WAV corto de silencio generado en el test), el orden se respeta, migración del metal
+
+- [ ] Vista «Voice lab»
+  criterio: siguiendo las skills ui-tokens y diseno-escritorio, una vista nueva para editar el personaje del perfil activo: añadir efectos por categoría, reordenarlos, quitar, deslizador de intensidad, ▶ escuchar el resultado con una frase de prueba o el texto actual, y guardar en el perfil; ajustes listos incluidos (p. ej. «Robot», «Narrador de terror», «Locutor de radio», «Demonio», «Ardilla», «Fantasma», «Teléfono») que se aplican con un clic y luego se pueden retocar; gui_smoke abre la vista, añade dos efectos, cambia el orden y guarda
+
+- [ ] Etiquetas dentro del texto
+  criterio: módulo `etiquetas.py` que interpreta `[voz:Perfil]`, `[pausa:segundos]`, `[sonido:nombre del soundboard]` y `[efecto:id] … [/efecto]` (sin distinguir mayúsculas; acepta también `[voice:…]`, `[pause:…]`, `[sound:…]`, `[effect:…]`), divide el texto en tramos y los dice en orden en un solo audio continuo; una etiqueta desconocida o un perfil/sonido inexistente se muestra en la barra de estado y se dice el resto; opción «Interpretar etiquetas» en Ajustes (activada); el editor colorea las etiquetas y la ayuda (Ajustes → Atajos o un botón «?») las explica; tests del analizador (anidado no permitido, valores inválidos, texto sin etiquetas igual que hoy) y de la combinación de tramos
+
+- [ ] Paquetes para compartir
+  criterio: «Export pack» guarda en un archivo `.mvpack` (zip con JSON) los perfiles elegidos con sus efectos, las frases rápidas, el diccionario y, opcionalmente, los sonidos del soundboard; «Import pack» muestra lo que contiene, avisa de choques de nombres (renombrar, reemplazar u omitir) y lo añade; un paquete nunca incluye claves, rutas personales ni la biblioteca; se rechazan paquetes corruptos, con rutas fuera del paquete (zip slip) o de más de 50 MB; tests de exportar → importar, choques de nombres y paquetes maliciosos
+
+Verificación manual:
+- Crear un personaje «demonio + eco + radio» y usarlo en Discord.
+- Escribir `[voz:Robot] Acceso denegado. [pausa:1] [voz:Narrador] Y entonces… [sonido:risa]` y escucharlo de corrido.
+- Exportar un paquete, importarlo en otra instalación.
+
+## FASE 6 — Diversión y comodidad para directos
+
+- [ ] Avatar PNGtuber
+  criterio: ventana opcional «Avatar» que muestra una imagen con la boca cerrada y otra con la boca abierta (y opcional parpadeo) según el nivel del audio que suena (el mismo medidor del panel), con umbral y suavizado ajustables; fondo de color sólido configurable (verde por defecto) o transparente donde el sistema lo permita, para capturarla en OBS; las imágenes las elige el usuario (PNG/GIF) y se incluye un avatar sencillo de ejemplo propio; se puede asignar un avatar por perfil; tests de la lógica de boca abierta/cerrada con niveles simulados y gui_smoke abre la ventana
+
+- [ ] Atajos de perfil y órdenes para Stream Deck
+  criterio: Ctrl+Shift+1…9 eligen los perfiles 1–9; la línea de comandos acepta `--decir "texto"` (dice el texto sin abrir el cuadro), `--frase N`, `--perfil "Nombre"` y `--callar`, enviadas a la ventana abierta por instancia única (si no hay ninguna, se abre); Ajustes → Atajos lo explica con ejemplos para Stream Deck, atajos del sistema y scripts; tests de cada orden por instancia única
+
+Verificación manual:
+- Avatar en OBS que mueve la boca al hablar.
+- Un botón de Stream Deck (o un atajo del sistema) que dice una frase rápida.
+
+## FASE 7 — Fácil de empezar, accesible y siempre al día
+
+- [ ] Asistente de primer uso y prueba del micrófono
+  criterio: la primera vez (o desde Ajustes → «Run setup again») un asistente de 3–4 pasos: idioma, elegir y escuchar una voz, comprobar el micrófono virtual (en Linux reproduce un tono por el 🎤 y lo capta desde su monitor para confirmar que llega señal; en Windows comprueba que VB-CABLE existe) y una pantalla con cómo elegirlo en Discord; se puede saltar; tests de la lógica de pasos y de la comprobación con señal simulada; gui_smoke recorre el asistente
+
+- [ ] Asistente de VB-CABLE en Windows
+  criterio: si en Windows no se detecta VB-CABLE, en vez de solo avisar se muestra una guía paso a paso (qué es, botón que abre la página oficial de descarga, instalar como administrador, reiniciar) y un botón «Check again» que lo detecta sin reiniciar la app; tests de la detección con dispositivos simulados
+
+- [ ] Accesibilidad
+  criterio: toda la ventana principal, Ajustes, el selector de voces y el Voice lab se pueden usar solo con teclado (orden de tabulación lógico, foco visible en todos los temas, Enter/Espacio activan, Esc cierra); Ajustes → General tiene «Text size» (90–150 %) que escala toda la interfaz; los botones solo con icono tienen texto alternativo o tooltip; tests: gui_smoke recorre con Tab los controles principales y aplica el tamaño 150 % sin errores
+
+- [ ] Aviso de versión nueva
+  criterio: al arrancar (opción en Ajustes, activada por defecto) se consulta la última release de GitHub (`/repos/BenReynor/MultiVoice/releases/latest`) con tiempo límite corto y sin bloquear la ventana; si hay una versión mayor, un aviso discreto con las notas y el enlace de descarga para el sistema del usuario; «Ignorar esta versión»; sin red no molesta; la app conoce su propia versión (constante única usada también por el empaquetado); tests de comparación de versiones y con respuestas simuladas (más nueva, igual, error)
+
+- [ ] AppImage para Linux
+  criterio: el workflow de build genera además `MultiVoice-x86_64.AppImage` (con icono PNG y `.DirIcon`, lanzador y las dependencias incluidas como el binario actual) que crea el 🎤 igual; README (en y es) lo añade a la tabla de descargas con instrucciones (`chmod +x`); el zip se mantiene
+
+- [ ] Documentación y capturas
+  criterio: README.md y README.es.md describen las voces (cientos de voces, Piper sin internet, voces de Windows), el Voice lab con la lista de efectos, las etiquetas con un ejemplo, los paquetes, el avatar, las órdenes de línea de comandos y el asistente; las capturas de docs/capturas/en y docs/capturas/es se rehacen con la interfaz nueva y textos de ejemplo generales; CONTEXTO.md actualizado con los módulos nuevos
+
+Verificación manual:
+- Borrar config.json: aparece el asistente y en 1 minuto se habla en Discord.
+- Navegar la app solo con teclado y con texto al 150 %.
+- Simular una versión vieja y ver el aviso.
+
+## Más adelante (ideas, sin criterios todavía)
+- Cambiador de voz del micrófono en tiempo real (tu voz con los efectos del Voice lab), empezando por efectos simples y vigilando la latencia.
+- Bajar la música y otros sonidos mientras habla (ducking): Linux primero.
+- Control desde el móvil (WebUI en la red local: escribir en el móvil y que hable el PC).
+- Voces Kokoro descargables.
+- Servicios de voz de pago con la clave propia del usuario (ElevenLabs, OpenAI, Azure), siempre opcionales.
+- Clonación de voz opcional como descarga aparte, con aviso y consentimiento (no imitar a personas reales sin permiso).
+- Integración con ARGUS: que un bot lea en voz alta mensajes de un canal o del chat de un directo.
+- Traducir antes de hablar (escribir en un idioma y hablar en otro).
