@@ -199,10 +199,10 @@ assert t("Queued ({n})", n=1) in app.lbl_cola.cget("text"), "repetir no encola"
 app.set_theme("minimal")             # el panel se repinta sin errores
 root.update()
 # perfiles: desplegable con los de ejemplo, aplicar, guardar, renombrar, borrar
-assert {"SCP-079", "Narrador"} <= set(app.profile_menu.cget("values"))
-assert app.apply_profile("SCP-079")
+assert {"Robot", "Narrador"} <= set(app.profile_menu.cget("values"))
+assert app.apply_profile("Robot")
 assert app.current_engine == "robot" and app.metal_slider.get() == 85
-app.profile_menu.set("SCP-079")
+app.profile_menu.set("Robot")
 app._pedir_nombre = lambda *a, **k: "Prueba"
 app.profile_save_new()
 assert "Prueba" in app.profile_menu.cget("values")
@@ -226,7 +226,7 @@ assert app.tabview.get() == t("⚡ Phrases") == frases.tab_frases()
 assert app.frases_hint.cget("text") == t("Ctrl+1…9 say the first nine")
 assert app.decir_frase("Saludos", 0)
 assert dichas[-1]["text"] == "Hola a todos"
-frases.editar(app.cfg, "Saludos", 1, perfil="SCP-079")
+frases.editar(app.cfg, "Saludos", 1, perfil="Robot")
 assert app.decir_frase("Saludos", 1)
 assert dichas[-1]["engine"] == "robot", dichas[-1]
 assert app.root.bind("<Control-Key-9>"), "Ctrl+9 sin atajo"

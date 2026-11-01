@@ -46,8 +46,8 @@ CONFIG_PATH = os.path.join(CONFIG_DIR, "config.json")
 ROBOT_VOICE = tts_engine.ROBOT_VOICE
 PROBE_TEXTS = [
     "Hola, esta es tu nueva voz de prueba. ¿Cómo me escucho?",
-    "El otro día vi una luz extraña en el pasillo de la Fundación.",
-    "Todas las amenazas han sido neutralizadas. Todo está bajo control.",
+    "Hoy hace un día perfecto para charlar con los amigos.",
+    "Gracias por escucharme. ¡Nos vemos en la próxima partida!",
 ]
 
 _HEX6 = re.compile(r"^#[0-9a-fA-F]{6}$")

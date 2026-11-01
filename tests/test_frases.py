@@ -17,8 +17,8 @@ def nueva():
 
 def test_agregar_crea_categoria_y_limpia():
     cfg = nueva()
-    f = frases.agregar(cfg, " Chistes ", "  Hola  ", "SCP-079")
-    assert f == {"text": "Hola", "profile": "SCP-079"}
+    f = frases.agregar(cfg, " Chistes ", "  Hola  ", "Robot")
+    assert f == {"text": "Hola", "profile": "Robot"}
     assert frases.categorias(cfg) == ["Chistes"]
     with pytest.raises(ValueError):
         frases.agregar(cfg, "X", "   ")

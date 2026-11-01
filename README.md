@@ -36,8 +36,8 @@ The interface is in **English by default**. To switch to Spanish, go to **Settin
 
 ## What you can do
 
-- **Three TTS engines:** Microsoft Edge neural voices (14 Spanish voices, online), Google TTS (gTTS, online) and the local **robot sound** (espeak-ng, offline) that imitates SCP-079, with metal (distortion), speed, pitch and volume controls.
-- **Voice profiles:** save engine, voice, speed, pitch, volume and metal under a name (e.g. “SCP-079”, “Narrator”) and switch between them from the voice bar. Two sample profiles are included.
+- **Three TTS engines:** Microsoft Edge neural voices (14 Spanish voices, online), Google TTS (gTTS, online) and the local **robot sound** (espeak-ng, offline) for a metallic robot voice, with metal (distortion), speed, pitch and volume controls.
+- **Voice profiles:** save engine, voice, speed, pitch, volume and metal under a name (e.g. “Robot”, “Narrator”) and switch between them from the voice bar. Two sample profiles are included.
 - **Quick phrases:** buttons grouped in categories that speak a phrase with one click, with the active profile or their own. The first nine are on **Ctrl+1 … Ctrl+9**.
 - **Queue and history:** a side panel shows what is playing (with a progress bar and level meter), what is waiting in the queue (each item can be removed) and what you said this session (repeat with one click).
 - **Pronunciation dictionary:** replacements applied before speaking with any engine (e.g. `xd` → “equis de”), whole word or not, case-insensitive; can be turned off.

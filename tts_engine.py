@@ -168,7 +168,7 @@ def gtts_synth(text, lang, slow, out_path):
 
 
 def robot_synth(text, speed, pitch, volume, metal, out_path):
-    """Synthesize with espeak-ng + ffmpeg effects in an SCP-079 style."""
+    """Synthesize with espeak-ng + ffmpeg effects (metallic robot voice)."""
     ext = os.path.splitext(out_path)[1].lower()
     final = out_path if ext == ".wav" else out_path + ".wav"
     raw = final + ".raw.wav"

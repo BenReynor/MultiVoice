@@ -10,8 +10,8 @@ ES = re.compile("[áéíóúñ¿¡ÁÉÍÓÚÑ]")
 EXCEPCIONES = {
     # Voz: frases de prueba que se pronuncian con voces españolas.
     "Hola, esta es tu nueva voz de prueba. ¿Cómo me escucho?": "voz",
-    "El otro día vi una luz extraña en el pasillo de la Fundación.": "voz",
-    "Todas las amenazas han sido neutralizadas. Todo está bajo control.":
+    "Hoy hace un día perfecto para charlar con los amigos.": "voz",
+    "Gracias por escucharme. ¡Nos vemos en la próxima partida!":
         "voz",
     # Ejemplos de datos del usuario (frases rápidas y diccionario).
     "Buenas noches, ¿qué tal?": "frase de ejemplo editable",

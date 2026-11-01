@@ -57,16 +57,16 @@ def test_config_antiguo_sin_perfiles_recibe_los_de_ejemplo(tmp_path, monkeypatch
     monkeypatch.setattr(mv, "CONFIG_PATH", str(ruta))
     cfg = mv.load_config()
     assert cfg["rate"] == 3
-    assert set(cfg["profiles"]) == {"SCP-079", "Narrador"}
-    assert cfg["profiles"]["SCP-079"]["engine"] == "robot"
+    assert set(cfg["profiles"]) == {"Robot", "Narrador"}
+    assert cfg["profiles"]["Robot"]["engine"] == "robot"
 
 
 def test_sin_config_trae_dos_ejemplos_independientes(tmp_path, monkeypatch):
     monkeypatch.setattr(mv, "CONFIG_PATH", str(tmp_path / "no.json"))
     a, b = mv.load_config(), mv.load_config()
     assert len(a["profiles"]) == 2
-    a["profiles"]["SCP-079"]["rate"] = 99
-    assert b["profiles"]["SCP-079"]["rate"] != 99
+    a["profiles"]["Robot"]["rate"] = 99
+    assert b["profiles"]["Robot"]["rate"] != 99
 
 
 def test_perfiles_viajan_por_config_json(tmp_path, monkeypatch):
@@ -77,7 +77,7 @@ def test_perfiles_viajan_por_config_json(tmp_path, monkeypatch):
     perfiles.guardar(cfg, "Nuevo", VOZ)
     mv.save_config(cfg)
     otra = mv.load_config()
-    assert set(otra["profiles"]) == {"SCP-079", "Nuevo"}
+    assert set(otra["profiles"]) == {"Robot", "Nuevo"}
     assert otra["profiles"]["Nuevo"] == VOZ
 
 

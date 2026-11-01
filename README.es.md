@@ -36,8 +36,8 @@ La interfaz está en **inglés por defecto**. Para cambiarla a español ve a **S
 
 ## Qué puedes hacer
 
-- **Tres motores TTS:** voces neuronales de Microsoft Edge (14 voces en español, con internet), Google TTS (gTTS, con internet) y el **sonido robot** local (espeak-ng, sin internet) que imita a SCP-079, con control de metal (distorsión), velocidad, tono y volumen.
-- **Perfiles de voz:** guarda motor, voz, velocidad, tono, volumen y metal con un nombre (p. ej. «SCP-079», «Narrador») y cambia entre ellos desde la barra de voz. Incluye dos perfiles de ejemplo.
+- **Tres motores TTS:** voces neuronales de Microsoft Edge (14 voces en español, con internet), Google TTS (gTTS, con internet) y el **sonido robot** local (espeak-ng, sin internet) para una voz de robot metálica, con control de metal (distorsión), velocidad, tono y volumen.
+- **Perfiles de voz:** guarda motor, voz, velocidad, tono, volumen y metal con un nombre (p. ej. «Robot», «Narrador») y cambia entre ellos desde la barra de voz. Incluye dos perfiles de ejemplo.
 - **Frases rápidas:** botones agrupados en categorías que dicen una frase con un clic, con el perfil activo o el suyo. Las nueve primeras están en **Ctrl+1 … Ctrl+9**.
 - **Cola e historial:** un panel lateral muestra lo que suena (con barra de progreso y medidor de nivel), lo que espera en la cola (cada elemento se puede quitar) y lo que dijiste en esta sesión (repite con un clic).
 - **Diccionario de pronunciación:** reemplazos aplicados antes de hablar con cualquier motor (p. ej. `xd` → «equis de»), por palabra completa o no, sin distinguir mayúsculas; se puede desactivar.

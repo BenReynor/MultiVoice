@@ -13,8 +13,8 @@ from idioma import t
 CAMPOS = ("engine", "voice", "rate", "pitch", "volume", "metal")
 
 PERFILES_EJEMPLO = {
-    "SCP-079": {"engine": "robot", "voice": "🤖 Robot Sound", "rate": -15,
-                "pitch": -25, "volume": 0, "metal": 85},
+    "Robot": {"engine": "robot", "voice": "🤖 Robot Sound", "rate": -15,
+              "pitch": -25, "volume": 0, "metal": 85},
     "Narrador": {"engine": "edge", "voice": "es-MX-JorgeNeural", "rate": -5,
                  "pitch": -10, "volume": 0, "metal": 0},
 }
