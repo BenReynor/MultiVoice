@@ -99,11 +99,26 @@ con `t()` y su entrada en `_ES`, y todo funciona igual en Linux y Windows.
 - [ ] Volumen igualado y botón Callar global
   criterio: el paso final de ffmpeg normaliza el volumen (loudnorm) para que todos los motores suenen parejos; opción en Ajustes → Audio (activada por defecto); «Detener» corta lo que suena y vacía la cola y tiene un atajo global: en Windows registrado por la app y en Linux mediante `multivoice --callar` (mismo mecanismo de instancia única que `--decir`), mostrado en Ajustes → Atajos con el botón de GNOME como el atajo de decir; tests de la orden `--callar` por instancia única y del filtro de normalización generado
 
+- [ ] Pulsar para hablar automático
+  criterio: Ajustes → Audio «Push-to-talk key»: si se configura una tecla (captura con «Press a key…»), MultiVoice la mantiene pulsada mientras suena cada audio (con un margen configurable de 150 ms antes y después) y la suelta al terminar, al pulsar Callar o si algo falla (nunca se queda pulsada); en Windows y en Linux con X11 funciona (pynput); en Linux con Wayland la opción aparece desactivada con la explicación de que el sistema no lo permite y la recomendación de usar detección de voz en la app de llamadas; tests con un teclado simulado: pulsa al empezar, suelta al terminar, suelta tras error y tras Callar, cola de varios audios seguidos sin soltar entre medias
+
+- [ ] Mezclar el micrófono real con la voz
+  criterio: Ajustes → Audio «Include my real microphone» con selector de micrófono y volumen propio: en Linux se crea un loopback de PipeWire/PulseAudio del micrófono elegido al 🎤 (se quita al desactivarlo y al cerrar la app, igual que el 🎤); en Windows se explica cómo hacerlo con la escucha de VB-CABLE y se detecta si está activo; desactivado por defecto; tests del comando pactl generado, de la limpieza al cerrar y de que un fallo no rompe el 🎤
+
+- [ ] Limpiar el texto antes de leerlo
+  criterio: módulo `limpiar_texto.py` aplicado antes del diccionario de pronunciación, con opciones en Ajustes (todas activadas salvo la de emojis, que por defecto los lee por su nombre en el idioma de la voz): enlaces → «enlace»/«link», emojis → su nombre o nada, repeticiones largas recortadas («jajajajaja» → «jaja», «!!!!!» → «!»), formato de chat quitado (`**negrita**`, `*cursiva*`, `__subrayado__`, `~~tachado~~`, `||spoiler||`, `` `código` ``, menciones `<@123>`), y espacios repetidos; las etiquetas de la FASE 5 no se tocan; tests de cada regla y de un mensaje real mezclado
+
+- [ ] Funciona en cualquier app de llamadas
+  criterio: el 🎤 ya es un micrófono del sistema; esta tarea lo hace explícito: Ajustes → «Use in other apps» con una guía corta por app (Discord, Telegram Desktop, WhatsApp Desktop y WhatsApp Web en el navegador, Zoom, Google Meet, Microsoft Teams, OBS y juegos con chat de voz) que dice dónde elegir el micrófono en cada una y si tiene pulsar para hablar; la tecla de pulsar para hablar se puede guardar por perfil para quien use apps distintas; los textos de la app y los README dejan de hablar solo de Discord («Discord, Telegram, WhatsApp and any app that lets you pick a microphone») y aclaran que las llamadas desde el móvil no se pueden; tests de que cada guía tiene su traducción y gui_smoke abre la guía
+
 Verificación manual:
 - Elegir una voz en inglés y otra en japonés de Edge; marcar favoritas.
 - Descargar una voz Piper en español y hablar con el Wi-Fi apagado; con una voz de Edge y sin red, comprobar el plan B.
 - Pegar un texto de 10 frases: empieza a sonar enseguida. Repetir una frase rápida: suena al instante.
 - Atajo de Callar en mitad de un texto largo.
+- Discord con pulsar para hablar: la voz se transmite sin tocar la tecla. Hablar con el micrófono real y con la voz en la misma llamada.
+- Pegar un mensaje con enlace, emojis y «jajajajaja»: se lee limpio.
+- Llamada de Telegram Desktop o WhatsApp Web con el 🎤.
 
 ## FASE 5 — Laboratorio de voces: efectos, etiquetas y paquetes
 
@@ -144,7 +159,7 @@ Verificación manual:
 ## FASE 7 — Fácil de empezar, accesible y siempre al día
 
 - [ ] Asistente de primer uso y prueba del micrófono
-  criterio: la primera vez (o desde Ajustes → «Run setup again») un asistente de 3–4 pasos: idioma, elegir y escuchar una voz, comprobar el micrófono virtual (en Linux reproduce un tono por el 🎤 y lo capta desde su monitor para confirmar que llega señal; en Windows comprueba que VB-CABLE existe) y una pantalla con cómo elegirlo en Discord; se puede saltar; tests de la lógica de pasos y de la comprobación con señal simulada; gui_smoke recorre el asistente
+  criterio: la primera vez (o desde Ajustes → «Run setup again») un asistente de 3–4 pasos: idioma, elegir y escuchar una voz, comprobar el micrófono virtual (en Linux reproduce un tono por el 🎤 y lo capta desde su monitor para confirmar que llega señal; en Windows comprueba que VB-CABLE existe) y una pantalla con cómo elegirlo en la app que el usuario use (Discord, Telegram, WhatsApp… reutilizando las guías de «Use in other apps»), ofreciendo configurar la tecla de pulsar para hablar; se puede saltar; tests de la lógica de pasos y de la comprobación con señal simulada; gui_smoke recorre el asistente
 
 - [ ] Asistente de VB-CABLE en Windows
   criterio: si en Windows no se detecta VB-CABLE, en vez de solo avisar se muestra una guía paso a paso (qué es, botón que abre la página oficial de descarga, instalar como administrador, reiniciar) y un botón «Check again» que lo detecta sin reiniciar la app; tests de la detección con dispositivos simulados
